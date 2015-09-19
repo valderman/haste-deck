@@ -2,7 +2,7 @@ haste-deck
 ==========
 
 Slideshow/layout library for use with the
-(Haste compiler)[http://haste-lang.org].
+[Haste compiler](http://haste-lang.org).
 
 Usage
 -----
