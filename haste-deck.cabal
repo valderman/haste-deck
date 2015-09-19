@@ -1,0 +1,28 @@
+name:                haste-deck
+version:             0.1.0.0
+synopsis:            Create presentation slides and simple web pages using an intuitive EDSL
+homepage:            https://github.com/valderman/haste-deck
+license:             MIT
+license-file:        LICENSE
+author:              Anton Ekblad
+maintainer:          anton@ekblad.cc
+-- copyright:           
+category:            Web
+build-type:          Simple
+cabal-version:       >=1.10
+
+library
+  exposed-modules:
+    Haste.Deck
+  other-modules:
+    Haste.Deck.Types
+    Haste.Deck.Internal
+  other-extensions:
+    OverloadedStrings
+    CPP
+  build-depends:
+    base >=4.6 && <4.9,
+    haste-lib >=0.5 && <0.6,
+    transformers >=0.4 && <0.5
+  default-language:
+    Haskell2010

@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, OverloadedStrings #-}
+{-# LANGUAGE CPP, OverloadedStrings #-}
 -- | Create slideshows and layout web pages in a compositional manner.
 module Haste.Deck (
     -- * Basic types
@@ -23,6 +23,9 @@ module Haste.Deck (
     text, image, list
   ) where
 import Control.Monad
+#if __GLASGOW_HASKELL__ < 710
+import Control.Applicative
+#endif
 import Data.List hiding (group)
 import Haste
 import Haste.DOM
