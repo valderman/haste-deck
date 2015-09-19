@@ -49,9 +49,11 @@ createDeck s = liftIO $ do
     go _ _ _ _ = do
       error "Shouldn't get here!"
 
-data Next = Next | Prev
+-- | Which slide should we proceed to?
+data NextSlide = Next | Prev
 
-waitMove :: MVar KeyData -> CIO Next
+-- | Wait for an event that moves the slideshow forward or backward.
+waitMove :: MVar KeyData -> CIO NextSlide
 waitMove v = do
   x <- takeMVar v
   case x of
@@ -61,12 +63,16 @@ waitMove v = do
     34 -> return Next -- pgdn
     _  -> waitMove v
 
-rowOrCol :: AttrName -> AttrName -> AttrName -> [Slide] -> IO Elem
-rowOrCol sizeattr posattr othersize xs = do
+data RowOrCol = MkRow | MkCol
+
+-- | Create an element containing a row or a column of sub-elements.
+--   Pass width/left/height to create a row, or height/top/width
+rowOrCol :: RowOrCol -> [Slide] -> IO Elem
+rowOrCol what xs = do
     es <- flip (flip zipWithM xs) [0, step ..] $ \x pos -> do
       e <- toElem x
       newElem "div" `with` [children [e],
-                            othersize        =: "100%",
+                            othersz          =: "100%",
                             sizeattr         =: stepStr,
                             posattr          =: (toString pos ++ "%"),
                             style "position" =: "absolute"]
@@ -77,12 +83,16 @@ rowOrCol sizeattr posattr othersize xs = do
   where
     step = 100 / fromIntegral (length xs) :: Double
     stepStr = show step ++ "%"
+    (sizeattr, posattr, othersz) =
+      case what of
+        MkRow -> (style "width", style "left", style "height")
+        MkCol -> (style "height", style "top", style "width")
 
-
+-- | Compile a slide into a DOM element.
 toElem :: Slide -> IO Elem
 toElem (Lift x)     = x
-toElem (Row xs)     = rowOrCol (style "width") (style "left") (style "height") xs
-toElem (Col xs)     = rowOrCol (style "height") (style "top") (style "width") xs
+toElem (Row xs)     = rowOrCol MkRow xs
+toElem (Col xs)     = rowOrCol MkCol xs
 toElem (Style s x)  = toElem x `with` s
 toElem (PStyle s x) = do
   e <- toElem x
@@ -90,9 +100,3 @@ toElem (PStyle s x) = do
                          style "width" =: "100%",
                          style "height" =: "100%",
                          style "position" =: "absolute"] ++ s)
-toElem (Group x)    = do
-  e <- toElem x
-  newElem "div" `with` [children [e],
-                        style "width" =: "100%",
-                        style "height" =: "100%",
-                        style "position" =: "absolute"]
