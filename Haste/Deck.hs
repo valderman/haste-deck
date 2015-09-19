@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP, OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 -- | Create slideshows and layout web pages in a compositional manner.
 module Haste.Deck (
     -- * Basic types
@@ -27,10 +28,14 @@ import Control.Monad
 import Control.Applicative
 #endif
 import Data.List hiding (group)
+import Data.String
 import Haste
 import Haste.DOM
 import Haste.Deck.Types
 import Haste.Deck.Internal
+
+instance IsString Slide where
+  fromString = text
 
 -- | A font size, expressed in points, elements or pixels.
 data FontSize
