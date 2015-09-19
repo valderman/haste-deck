@@ -111,13 +111,7 @@ list listtype rows = Lift $ do
   set e [style "margin" =: "0px",
          style "padding" =: "0px",
          style "position" =: "absolute",
+         style "left" =: "0px",
          style "width" =: "100%",
-         style "height" =: "100%",
-         style "left" =: "0px"]
-  newElem "div" `with` [children [e],
-                        style "display" =: "inline-block",
-                        style "position" =: "absolute",
-                        style "width" =: "100%",
-                        style "height" =: "100%",
-                        style "border" =: "1px solid black",
-                        style "transform" =: "translateX(50%)"]
+         style "list-style-position" =: "inside"]
+  return e
