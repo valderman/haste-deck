@@ -1,7 +1,9 @@
-module Haste.Deck.Internal (createDeck, enableDeck, disableDeck) where
-import Control.Monad.State
+module Haste.Deck.Internal (createDeck, enableDeck, disableDeck, toElem) where
+import Control.Monad
+import Control.Monad.IO.Class
 import Data.IORef
 import Haste.Concurrent hiding (wait)
+import Haste (toString)
 import Haste.DOM
 import Haste.Events
 import Haste.Deck.Types
@@ -28,16 +30,16 @@ disableDeck d = liftIO $ do
     Nothing -> return ()
 
 -- | Create a deck of slides.
-createDeck :: MonadIO m => [Slide ()] -> m Deck
+createDeck :: MonadIO m => [Slide] -> m Deck
 createDeck s = liftIO $ do
-    e <- newElem "div"
+    e <- newElem "div" `with` [style "overflow" =: "hidden"]
     v <- newEmptyMVar
-    concurrent . fork $ go e (waitMove v) [] s
+    s' <- mapM toElem s
+    concurrent . fork $ go e (waitMove v) [] s'
     Deck e v <$> newIORef Nothing
   where
     go parent wait prev next@(x:xs) = do
-      slide <- liftIO $ renderSlide x
-      setChildren parent [slide]
+      setChildren parent [x]
       n <- wait
       case n of
         Next | not (null xs)   -> go parent wait (x:prev) xs
@@ -59,7 +61,38 @@ waitMove v = do
     34 -> return Next -- pgdn
     _  -> waitMove v
 
-renderSlide :: Slide a -> IO Elem
-renderSlide (Slide s) = do
-  (_, e) <- runStateT s documentBody
-  newElem "div" `with` [children [e]]
+rowOrCol :: AttrName -> AttrName -> AttrName -> [Slide] -> IO Elem
+rowOrCol sizeattr posattr othersize xs = do
+    es <- flip (flip zipWithM xs) [0, step ..] $ \x pos -> do
+      e <- toElem x
+      newElem "div" `with` [children [e],
+                            othersize        =: "100%",
+                            sizeattr         =: stepStr,
+                            posattr          =: (toString pos ++ "%"),
+                            style "position" =: "absolute"]
+    newElem "div" `with` [children es,
+                          style "position" =: "absolute",
+                          style "width" =: "100%",
+                          style "height" =: "100%"]
+  where
+    step = 100 / fromIntegral (length xs) :: Double
+    stepStr = show step ++ "%"
+
+
+toElem :: Slide -> IO Elem
+toElem (Lift x)     = x
+toElem (Row xs)     = rowOrCol (style "width") (style "left") (style "height") xs
+toElem (Col xs)     = rowOrCol (style "height") (style "top") (style "width") xs
+toElem (Style s x)  = toElem x `with` s
+toElem (PStyle s x) = do
+  e <- toElem x
+  newElem "div" `with` ([children [e],
+                         style "width" =: "100%",
+                         style "height" =: "100%",
+                         style "position" =: "absolute"] ++ s)
+toElem (Group x)    = do
+  e <- toElem x
+  newElem "div" `with` [children [e],
+                        style "width" =: "100%",
+                        style "height" =: "100%",
+                        style "position" =: "absolute"]

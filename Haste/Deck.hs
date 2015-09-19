@@ -1,5 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, OverloadedStrings #-}
 module Haste.Deck where
+import Control.Monad
 import Data.List
 import Haste
 import Haste.DOM
@@ -14,85 +15,109 @@ instance Show FontSize where
   show (Pt n) = show n ++ "pt"
   show (Em n) = show n ++ "em"  
 
-withAttrs :: [Attribute] -> Slide a -> Slide a
-withAttrs attrs s = do
-  x <- s
-  get >>= flip set attrs
-  return x
+data ListStyle = Numbered | Unnumbered
 
-getDimensions :: Elem -> IO (Int, Int)
-getDimensions = ffi "(function(e){return [e.offsetWidth, e.offsetHeight];})"
+instance Show ListStyle where
+  show Numbered   = "ol"
+  show Unnumbered = "ul"
+
+withAttrs :: [Attribute] -> Slide -> Slide
+withAttrs as (Style as' s) = Style (as ++ as') s
+withAttrs as (PStyle ps s) = PStyle ps (withAttrs as s)
+withAttrs as s             = Style as s
+
+parentStyle :: [Attribute] -> Slide -> Slide
+parentStyle as (PStyle as' s) = PStyle (as ++ as') s
+parentStyle as s              = PStyle as s
 
 -- | Render a string of text.
-text :: String -> Slide ()
-text s = liftIO (newElem "span" `with` ["textContent" =: s]) >>= put
+text :: String -> Slide
+text s = Lift $ newElem "div" `with` ["textContent" =: s]
 
 -- | Render the given slide using the given color.
-color :: String -> Slide a -> Slide a
+color :: String -> Slide -> Slide
 color c = withAttrs [style "color" =: c]
 
 -- | Display the given slide with the given font size.
-fontSize :: FontSize -> Slide a -> Slide a
+fontSize :: FontSize -> Slide -> Slide
 fontSize sz = withAttrs [style "fontSize" =: show sz]
 
 -- | Display the given slide with the given font face.
-font :: String -> Slide a -> Slide a
+font :: String -> Slide -> Slide
 font f = withAttrs [style "font-family" =: f]
 
 -- | Display the given slide with the given CSS class.
-withClass :: String -> Slide a -> Slide a
+withClass :: String -> Slide -> Slide
 withClass c = withAttrs ["class" =: c]
 
 -- | Display the given slide centered.
-centered :: Slide a -> Slide a
-centered s = do
-  x <- s
-  e <- get
-  e' <- newElem "div" `with` [children [e],
-                              style "text-align" =: "center",
-                              style "display" =: "inline-block"]
-  put e'
-  return x
+centered :: Slide -> Slide
+centered = parentStyle [style "text-align" =: "center"]
 
 -- | Display the given slide centered.
-verticallyCentered :: Slide a -> Slide a
-verticallyCentered s = do
-  x <- s
-  e <- get
-  set e [style "position" =: "absolute",
-         style "top" =: "50%",
-         style "transform" =: "translate(0,-50%)"]
-  e' <- newElem "div" `with` [children [e],
-                              style "position" =: "absolute",
-                              style "border" =: "1px solid black",
-                              style "height" =: "100%",
-                              style "width" =: "100%",
-                              style "display" =: "inline-block"]
-  put e'
-  return x
+verticallyCentered :: Slide -> Slide
+verticallyCentered = mapLeaf $ withAttrs [style "position" =: "relative",
+                                          style "top" =: "50%",
+                                          style "transform" =: "translateY(-50%)"]
 
 -- | Put the first slide above the second.
-above :: Slide () -> Slide () -> Slide ()
-above a b = do
-  a' <- a >> get
-  b' <- b >> get
-  br <- newElem "br"
-  put =<< newElem "div" `with` [children [a',br,b'],
-                                style "display" =: "inline-block"]
+above :: Slide -> Slide -> Slide
+above (Col as) (Col bs) = Col (as ++ bs)
+above (Col as) b        = Col (as ++ [b])
+above a        (Col bs) = Col (a : bs)
+above a        b        = Col [a, b]
 
 -- | Put the first slide to the left of the second.
-leftOf :: Slide () -> Slide () -> Slide ()
-leftOf l r = do
-  l' <- l >> get
-  r' <- r >> get
-  put =<< newElem "div" `with` [children [l',r'],
-                                style "display" =: "inline-block"]
-row :: [Slide ()] -> Slide ()
+leftOf :: Slide -> Slide -> Slide
+leftOf (Row ls) (Row rs) = Row (ls ++ rs)
+leftOf (Row ls) r        = Row (ls ++ [r])
+leftOf l        (Row rs) = Row (l : rs)
+leftOf l        r        = Row [l, r]
+
+-- | Create a layout group out of one or more slides. A layout group is used
+--   to control how space is split among slides. For example:
+--
+--   > a `above` b `above` c
+--
+--   In the above compound slide, @a@, @b@ and @c@ will be composed vertically,
+--   taking up 33% of the available vertical space each. We can change this
+--   space allotment using @group@:
+--
+--   > a `above` group (b `above` c)
+--
+--   In this compound slide, the available vertical space will be split evenly
+--   between @a@ on the one hand, and @b@ and @c@ on the other. Thus, @a@ will
+--   get 50% of the available space, and @b@ and @c@ will get 25% each.
+group :: Slide -> Slide
+group = Group
+
+-- | Create a row of slides, with all slides taking up equal space.
+row :: [Slide] -> Slide
 row = foldl1' (flip leftOf)
 
-column :: [Slide ()] -> Slide ()
+-- | Create a column of slides, with all slides taking up equal space.
+column :: [Slide] -> Slide
 column = foldl1' (flip above)
 
 -- | Render an image.
-image :: URL -> Slide ()
-image url = (put =<<) . liftIO $ newElem "img" `with` ["src" =: url]
+image :: URL -> Slide
+image url = Lift $ newElem "img" `with` ["src" =: url]
+
+list :: ListStyle -> [String] -> Slide
+list listtype rows = Lift $ do
+  e <- newElem (show listtype)
+  forM_ rows $ \r -> do
+    newElem "li" `with` ["textContent" =: r] >>= appendChild e
+  set e [style "margin" =: "0px",
+         style "padding" =: "0px",
+         style "position" =: "absolute",
+         style "width" =: "100%",
+         style "height" =: "100%",
+         style "left" =: "0px"]
+  newElem "div" `with` [children [e],
+                        style "display" =: "inline-block",
+                        style "position" =: "absolute",
+                        style "width" =: "100%",
+                        style "height" =: "100%",
+                        style "border" =: "1px solid black",
+                        style "transform" =: "translateX(50%)"]
