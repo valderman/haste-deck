@@ -21,7 +21,11 @@ module Haste.Deck (
     
     -- * Primitives
     ListStyle (..),
-    text, image, list
+    text, image, list,
+
+    -- * Transitions
+    Transition,
+    none, pan, fade, fadeOver, blend
   ) where
 import Control.Monad
 import Data.List hiding (group)
@@ -30,6 +34,7 @@ import Haste
 import Haste.DOM
 import Haste.Deck.Types
 import Haste.Deck.Internal
+import Haste.Deck.Transitions
 
 instance IsString Slide where
   fromString = text

@@ -14,10 +14,10 @@ cabal-version:       >=1.10
 library
   exposed-modules:
     Haste.Deck
+    Haste.Deck.Transitions
   other-modules:
     Haste.Deck.Types
     Haste.Deck.Internal
-    Haste.Deck.Transitions
   other-extensions:
     OverloadedStrings
     CPP
