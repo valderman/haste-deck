@@ -32,7 +32,17 @@ disableDeck d = liftIO $ do
 -- | Create a deck of slides.
 createDeck :: MonadIO m => [Slide] -> m Deck
 createDeck s = liftIO $ do
-    e <- newElem "div" `with` [style "overflow" =: "hidden"]
+    e <- newElem "div" `with` [style "overflow" =: "hidden",
+                               style "padding" =: "0px",
+                               style "margin" =: "0px",
+                               style "top" =: "0px",
+                               style "bottom" =: "0px",
+                               style "left" =: "0px",
+                               style "right" =: "0px",
+                               style "width" =: "auto",
+                               style "height" =: "auto",
+                               style "position" =: "absolute",
+                               style "display" =: "block"]
     v <- newEmptyMVar
     s' <- mapM toElem s
     concurrent . fork $ go e (waitMove v) [] s'
