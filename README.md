@@ -34,13 +34,14 @@ We can also place the slide in relation to other elements:
     three :: Slide
     three = two `above` image "hello.jpg"
 
-When we are done, we can create a deck out of our slides and display it:
+When we are done, we can create a deck out of our slides and display it.
+In this example we're using the `pan` transition, but this is user configurable:
 
     main :: IO ()
     main = do
-      deck <- createDeck [one, two, three]
+      deck <- createDeck pan [one, two, three]
       appendChild documentBody deck
       enableDeck deck
 
 Arrow keys and page up/down switch between slides.
-Custom input configuration and transitions are not yet implemented.
+Custom input configuration and per slide transitions are not yet implemented.
