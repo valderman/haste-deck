@@ -17,7 +17,7 @@ module Haste.Deck (
     -- * Styling
     FontSize (..), Alignment (..),
     aligned, centered, verticallyCentered,
-    color, fontSize, font,
+    color, textBackground, backgroundColor, fontSize, font,
     
     -- * Primitives
     ListStyle (..),
@@ -116,6 +116,16 @@ list listtype rows = Lift $ do
 -- | Render the given slide using the given color.
 color :: String -> Slide -> Slide
 color c = withAttrs [style "color" =: c]
+
+-- | Render the text and other primitive elements in the given slide with the
+--   given background color.
+textBackground :: String -> Slide -> Slide
+textBackground c = withAttrs [style "background-color" =: c]
+
+-- | Render the given slide using the given background color for its whole
+--   layout group.
+backgroundColor :: String -> Slide -> Slide
+backgroundColor c = groupAttrs [style "background-color" =: c]
 
 -- | Display the given slide with the given font size.
 fontSize :: FontSize -> Slide -> Slide
