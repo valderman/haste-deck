@@ -24,9 +24,6 @@ module Haste.Deck (
     text, image, list
   ) where
 import Control.Monad
-#if __GLASGOW_HASKELL__ < 710
-import Control.Applicative
-#endif
 import Data.List hiding (group)
 import Data.String
 import Haste
