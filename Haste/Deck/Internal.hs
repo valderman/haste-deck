@@ -56,7 +56,7 @@ createDeck t s = liftIO $ do
       concurrent . fork $ do
         setChildren inner (take 1 s')
         go e inner (waitMove v) [] s'
-    Deck e v <$> newIORef Nothing
+    Deck e v `fmap` newIORef Nothing
   where
     go parent inner wait prev next@(x:xs) = do
       n <- wait
