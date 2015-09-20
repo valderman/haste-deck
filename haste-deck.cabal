@@ -17,6 +17,7 @@ library
   other-modules:
     Haste.Deck.Types
     Haste.Deck.Internal
+    Haste.Deck.Transitions
   other-extensions:
     OverloadedStrings
     CPP

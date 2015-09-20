@@ -1,5 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Haste.Deck.Types (Slide (..), Deck (..), mapLeaf) where
+module Haste.Deck.Types (Slide (..), Deck (..), NextSlide (..), mapLeaf) where
 import Data.IORef
 import Haste.Concurrent hiding (wait)
 import Haste.DOM
@@ -16,13 +16,22 @@ data Slide
 
 -- | A deck of slides.
 data Deck = Deck {
+    -- | Container element
     deckContainer  :: !Elem,
+
+    -- | MVar to write to when a slide change event occurs.
     deckKeyMVar    :: !(MVar KeyData),
+
+    -- | 'HandlerInfo' of the deck's key hooks, if installed.
     deckKeyHandler :: !(IORef (Maybe HandlerInfo))
   }
 
 instance IsElem Deck where
   elemOf = deckContainer
+
+-- | Which slide should we proceed to?
+data NextSlide = Next | Prev
+  deriving Eq
 
 -- | Modify all leaf nodes in the current slide.
 mapLeaf :: (Slide -> Slide) -> Slide -> Slide

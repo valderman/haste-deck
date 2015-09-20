@@ -7,6 +7,9 @@ import Haste (toString)
 import Haste.DOM
 import Haste.Events
 import Haste.Deck.Types
+import Haste.Deck.Transitions
+import Haste.Graphics.AnimationFrame
+import Haste.Performance
 
 -- | Hook keydown events for left, right, pgup and pgdn and use them to flip
 --   between the slides of the given deck.
@@ -30,9 +33,13 @@ disableDeck d = liftIO $ do
     Nothing -> return ()
 
 -- | Create a deck of slides.
-createDeck :: MonadIO m => [Slide] -> m Deck
-createDeck s = liftIO $ do
-    e <- newElem "div" `with` [style "overflow" =: "hidden",
+createDeck :: MonadIO m => Transition -> [Slide] -> m Deck
+createDeck t s = liftIO $ do
+    inner <- newElem "div" `with` [style "width" =: "100%",
+                                   style "height" =: "100%",
+                                   style "position" =: "absolute"]
+    e <- newElem "div" `with` [children [inner],
+                               style "overflow" =: "hidden",
                                style "padding" =: "0px",
                                style "margin" =: "0px",
                                style "top" =: "0px",
@@ -45,22 +52,49 @@ createDeck s = liftIO $ do
                                style "display" =: "block"]
     v <- newEmptyMVar
     s' <- mapM toElem s
-    concurrent . fork $ go e (waitMove v) [] s'
+    when (not $ null s') $ do
+      concurrent . fork $ do
+        setChildren inner (take 1 s')
+        go e inner (waitMove v) [] s'
     Deck e v <$> newIORef Nothing
   where
-    go parent wait prev next@(x:xs) = do
-      setChildren parent [x]
+    go parent inner wait prev next@(x:xs) = do
       n <- wait
-      case n of
-        Next | not (null xs)   -> go parent wait (x:prev) xs
-             | otherwise       -> go parent wait prev next
-        Prev | not (null prev) -> go parent wait (drop 1 prev) (head prev:next)
-             | otherwise       -> go parent wait prev next
-    go _ _ _ _ = do
+      let (prev', next'@(x':_), changed) =
+            case n of
+              Next | not (null xs)   -> (x:prev, xs, True)
+              Prev | not (null prev) -> (drop 1 prev, head prev:next, True)
+              _                      -> (prev, next, False)
+      if changed
+        then liftIO $ changeSlide n parent inner wait prev' next' x'
+        else go parent inner wait prev next
+    go _ _ _ _ _ = do
       error "Shouldn't get here!"
 
--- | Which slide should we proceed to?
-data NextSlide = Next | Prev
+    -- Animate the transition from an old one to a new
+    changeSlide dir parent inner wait prev next new = do
+      t0 <- now
+      let duration = transitionDuration t
+      newinner <- newElem "div" `with` [style "width" =: "100%",
+                                        style "height" =: "100%",
+                                        style "position" =: "absolute",
+                                        children [new]]
+      let animate =
+            \t1 -> do
+              let progress = min ((t1-t0)/duration) 1
+              transitionStep t progress dir parent inner newinner
+              if progress < 1
+                then do
+                  void $ requestAnimationFrame animate
+                else do
+                  transitionFinished t dir parent inner newinner
+                  setChildren newinner [new]
+                  setChildren parent [newinner]
+                  concurrent $ go parent newinner wait prev next
+
+      void . requestAnimationFrame $ \t1 -> do
+        transitionSetup t dir parent inner newinner
+        animate t1
 
 -- | Wait for an event that moves the slideshow forward or backward.
 waitMove :: MVar KeyData -> CIO NextSlide
