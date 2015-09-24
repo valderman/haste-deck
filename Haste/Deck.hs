@@ -95,7 +95,7 @@ groupAttrs as s              = PStyle as s
 
 -- | Display the given slide with the given CSS class.
 withClass :: String -> Slide -> Slide
-withClass c = groupAttrs ["class" =: c]
+withClass c = groupAttrs ["className" =: c]
 
 -- | Render a string of text.
 text :: String -> Slide
