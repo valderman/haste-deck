@@ -67,7 +67,7 @@ data ListStyle = Numbered | Unnumbered
 
 listStyleString :: ListStyle -> String
 listStyleString Numbered = "ol"
-listStyleString Unnumbered = "ol"
+listStyleString Unnumbered = "ul"
 
 -- | Include an arbitrary DOM element in a slide.
 --   In order for horizontal centering to work properly, the element - or
