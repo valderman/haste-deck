@@ -21,7 +21,7 @@ module Haste.Deck (
     
     -- * Primitives
     ListStyle (..),
-    text, image, list,
+    text, image, list, sublist,
 
     -- * Transitions
     Transition,
@@ -105,18 +105,34 @@ text s = Lift $ newElem "div" `with` ["textContent" =: s]
 image :: URL -> Slide
 image url = Lift $ newElem "img" `with` ["src" =: url]
 
-list :: ListStyle -> [String] -> Slide
+data List = Sublist ListStyle String [List] | Line String
+
+instance IsString List where
+  fromString = Line
+
+-- | Create a list of items. List items may be either text strings or sublists.
+list :: ListStyle -> [List] -> Slide
 list listtype rows = Lift $ do
-  e <- newElem (listStyleString listtype)
-  forM_ rows $ \r -> do
-    newElem "li" `with` ["textContent" =: r] >>= appendChild e
-  set e [style "margin" =: "0px",
-         style "padding" =: "0px",
-         style "position" =: "absolute",
-         style "left" =: "0px",
-         style "width" =: "100%",
-         style "list-style-position" =: "inside"]
-  return e
+    e <- newElem (listStyleString listtype) `with` [
+           style "margin" =: "0px",
+           style "padding" =: "0px",
+           style "list-style-position" =: "inside",
+           style "text-align" =: "left",
+           style "display" =: "inline-block"]
+    mapM_ (mkListItem >=> appendChild e) rows
+    return e
+  where
+    mkListItem (Line s) = do
+      newElem "li" `with` ["textContent" =: s, style "text-align" =: "left"]
+    mkListItem (Sublist sty heading xs) = do
+      e <- newElem (listStyleString sty)
+      mapM_ (mkListItem >=> appendChild e) xs
+      newElem "li" `with` ["textContent" =: heading, children [e]]
+
+-- | Create a sublist from a list style, a sublist heading, and a list of
+--   list items.
+sublist :: ListStyle -> String -> [List] -> List
+sublist = Sublist
 
 -- | Render the given slide using the given color.
 color :: String -> Slide -> Slide
