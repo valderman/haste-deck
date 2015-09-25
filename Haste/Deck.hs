@@ -192,8 +192,8 @@ group = PStyle []
 
 -- | Create a row of slides, with all slides taking up equal space.
 row :: [Slide] -> Slide
-row = foldl1' (flip leftOf)
+row = foldl1' leftOf
 
 -- | Create a column of slides, with all slides taking up equal space.
 column :: [Slide] -> Slide
-column = foldl1' (flip above)
+column = foldl1' above
