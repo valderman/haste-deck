@@ -16,8 +16,9 @@ library
     Haste.Deck
     Haste.Deck.Transitions
   other-modules:
-    Haste.Deck.Types
     Haste.Deck.Internal
+    Haste.Deck.Markup
+    Haste.Deck.Types
   other-extensions:
     OverloadedStrings
     CPP
