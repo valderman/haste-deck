@@ -15,7 +15,7 @@ module Haste.Deck (
     leftOf, above, group, row, column,
 
     -- * Styling
-    FontSize (..), Alignment (..),
+    Markup, FontSize (..), Alignment (..),
     aligned, centered, verticallyCentered,
     color, textBackground, backgroundColor, fontSize, font,
     
