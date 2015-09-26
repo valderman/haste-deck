@@ -34,12 +34,17 @@ We can also place the slide in relation to other elements:
     three :: Slide
     three = two `above` image "hello.jpg"
 
+Add some Markdown (or rather, a subset of Markdown) to spice it up further:
+
+    four :: Slide
+    four = "This text is to the *left*!" `leftOf` three
+
 When we are done, we can create a deck out of our slides and display it.
 In this example we're using the `pan` transition, but this is user configurable:
 
     main :: IO ()
     main = do
-      deck <- createDeck pan [one, two, three]
+      deck <- createDeck pan [one, two, three, four]
       appendChild documentBody deck
       enableDeck deck
 
