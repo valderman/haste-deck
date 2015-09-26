@@ -9,7 +9,7 @@ module Haste.Deck (
     createDeck, enableDeck, disableDeck, toElem,
 
     -- * CSS/DOM inclusion
-    element, html, withAttrs, groupAttrs, withClass,
+    lift, element, html, withAttrs, groupAttrs, withClass,
 
     -- * Layout
     leftOf, above, group, row, column,
@@ -70,17 +70,23 @@ listStyleString :: ListStyle -> String
 listStyleString Numbered = "ol"
 listStyleString Unnumbered = "ul"
 
+
 -- | Include an arbitrary DOM element in a slide.
---   In order for horizontal centering to work properly, the element - or
---   the parts of it that should be affected by centering - should declare
+--   In order for horizontal alignment to work properly, the element - or
+--   the parts of it that should be affected by alignment - should declare
 --   @display: inline-block@.
 element :: IsElem e => e -> Slide
-element = Lift . return . elemOf
+element = lift . return
+
+-- | Include a dynamically created DOM element in a slide.
+--   See 'element' for information about horizontal alignment.
+lift :: IsElem e => IO e -> Slide
+lift = Lift . fmap elemOf
 
 -- | Include verbatim HTML in a slide.
 --   Any elements to be centered should declare @display: inline-block@.
 html :: String -> Slide
-html s = Lift $ newElem "div" `with` ["innerHTML" =: s]
+html s = lift $ newElem "div" `with` ["innerHTML" =: s]
 
 -- | Apply a list of attributes to the given slide.
 withAttrs :: [Attribute] -> Slide -> Slide
@@ -100,7 +106,7 @@ withClass c = groupAttrs ["className" =: c]
 
 -- | Render a string of text.
 text :: String -> Slide
-text s = Lift $ newElem "div" `with` ["textContent" =: s]
+text s = lift $ newElem "div" `with` ["textContent" =: s]
 
 -- | Render a string of text possibly containing markup.
 markup :: Markup -> Slide
@@ -108,7 +114,7 @@ markup = html . toString . render
 
 -- | Render an image.
 image :: URL -> Slide
-image url = Lift $ newElem "img" `with` ["src" =: url]
+image url = lift $ newElem "img" `with` ["src" =: url]
 
 data List = Sublist ListStyle Markup [List] | Line Markup
 
@@ -117,7 +123,7 @@ instance IsString List where
 
 -- | Create a list of items. List items may be either text strings or sublists.
 list :: ListStyle -> [List] -> Slide
-list listtype rows = Lift $ do
+list listtype rows = lift $ do
     e <- newElem (listStyleString listtype) `with` [
            style "margin" =: "0px",
            style "padding" =: "0px",
