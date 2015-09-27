@@ -12,7 +12,7 @@ module Haste.Deck (
     lift, element, html, withAttrs, groupAttrs, withClass,
 
     -- * Layout
-    leftOf, above, group, row, column,
+    sized, leftOf, above, group, row, column,
 
     -- * Styling
     Markup, FontSize (..), Alignment (..),
@@ -196,6 +196,13 @@ leftOf (Row ls) (Row rs) = Row (ls ++ rs)
 leftOf (Row ls) r        = Row (ls ++ [r])
 leftOf l        (Row rs) = Row (l : rs)
 leftOf l        r        = Row [l, r]
+
+-- | Request that the given fraction of the available space is allocated to
+--   the given element. For instance, @sized 0.25 s@ will request that @s@ is
+--   allocated 25% of the available screen space, while any elements it is
+--   composed with get to share the remaining 75%.
+sized :: Double -> Slide -> Slide
+sized = SizeReq
 
 -- | Create a layout group out of one or more slides. A layout group is used
 --   to control how space is split among slides. For example:

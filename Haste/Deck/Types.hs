@@ -8,11 +8,12 @@ import Haste.Events
 -- | A somewhat restricted DOM/CSS representation of a partial web page,
 --   specifically geared towards creating presentations and slide shows.
 data Slide
-  = Row    ![Slide]
-  | Col    ![Slide]
-  | Style  ![Attribute] !Slide
-  | PStyle ![Attribute] !Slide
-  | Lift   !(IO Elem)
+  = Row     ![Slide]
+  | Col     ![Slide]
+  | Style   ![Attribute] !Slide
+  | PStyle  ![Attribute] !Slide
+  | Lift    !(IO Elem)
+  | SizeReq !Double !Slide
 
 -- | A deck of slides.
 data Deck = Deck {
@@ -41,4 +42,5 @@ mapLeaf f = go
     go (Col xs)      = Col $ map go xs
     go (Style as x)  = Style as $ go x
     go (PStyle as x) = PStyle as $ go x
+    go (SizeReq r x) = SizeReq r $ go x
     go x@(Lift _)    = f x

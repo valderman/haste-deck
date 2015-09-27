@@ -111,34 +111,52 @@ data RowOrCol = MkRow | MkCol
 
 -- | Create an element containing a row or a column of sub-elements.
 --   Pass width/left/height to create a row, or height/top/width
-rowOrCol :: RowOrCol -> [Slide] -> IO Elem
-rowOrCol what xs = do
-    es <- flip (flip zipWithM xs) [0, step ..] $ \x pos -> do
+rowOrCol :: RowOrCol -> Double -> [Slide] -> IO Elem
+rowOrCol what unalloc xs = do
+    parent <- newElem "div" `with` [style "position" =: "absolute",
+                                    style "width" =: "100%",
+                                    style "height" =: "100%"]
+
+    revFoldM 0 xs $ \pos x -> do
+      let (pos', szstr) = case x of
+                            SizeReq r _ -> (pos + r, pctstr r)
+                            _           -> (pos + step, stepStr)
       e <- toElem x
-      newElem "div" `with` [children [e],
-                            othersz          =: "100%",
-                            sizeattr         =: stepStr,
-                            posattr          =: (toString pos ++ "%"),
-                            style "position" =: "absolute"]
-    newElem "div" `with` [children es,
-                          style "position" =: "absolute",
-                          style "width" =: "100%",
-                          style "height" =: "100%"]
+      e' <- newElem "div" `with` [children [e],
+                                  othersz          =: "100%",
+                                  sizeattr         =: szstr,
+                                  posattr          =: (toString (pos*100)++"%"),
+                                  style "position" =: "absolute"]
+      appendChild parent e'
+      return pos'
+
+    return parent
   where
-    step = 100 / fromIntegral (length xs) :: Double
-    stepStr = show step ++ "%"
+    step = unalloc / fromIntegral (length xs - length [0::Int | SizeReq _ _ <- xs])
+    stepStr = show (step*100) ++ "%"
+    pctstr frac = show (frac*100) ++ "%"
     (sizeattr, posattr, othersz) =
       case what of
         MkRow -> (style "width", style "left", style "height")
         MkCol -> (style "height", style "top", style "width")
+    revFoldM acc es f = foldM_ f acc es
+
+-- | Calculate the space available for slides that haven't requested a certain
+--   percentage of the screen.
+unallocatedSpace :: [Slide] -> Double
+unallocatedSpace = max 0 . (1-) . sum . map sizeReq
+  where
+    sizeReq (SizeReq r _) = r
+    sizeReq _             = 0
 
 -- | Compile a slide into a DOM element.
 toElem :: Slide -> IO Elem
-toElem (Lift x)     = x
-toElem (Row xs)     = rowOrCol MkRow xs
-toElem (Col xs)     = rowOrCol MkCol xs
-toElem (Style s x)  = toElem x `with` s
-toElem (PStyle s x) = do
+toElem (Lift x)      = x
+toElem (Row xs)      = rowOrCol MkRow (unallocatedSpace xs) xs
+toElem (Col xs)      = rowOrCol MkCol (unallocatedSpace xs) xs
+toElem (Style s x)   = toElem x `with` s
+toElem (SizeReq _ x) = toElem x
+toElem (PStyle s x)  = do
   e <- toElem x
   newElem "div" `with` ([children [e],
                          style "width" =: "100%",
