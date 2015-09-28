@@ -70,7 +70,6 @@ listStyleString :: ListStyle -> String
 listStyleString Numbered = "ol"
 listStyleString Unnumbered = "ul"
 
-
 -- | Include an arbitrary DOM element in a slide.
 --   In order for horizontal alignment to work properly, the element - or
 --   the parts of it that should be affected by alignment - should declare
@@ -190,6 +189,8 @@ above (Col as) b        = Col (as ++ [b])
 above a        (Col bs) = Col (a : bs)
 above a        b        = Col [a, b]
 
+infixl 3 `above`
+
 -- | Put the first slide to the left of the second.
 leftOf :: Slide -> Slide -> Slide
 leftOf (Row ls) (Row rs) = Row (ls ++ rs)
@@ -197,12 +198,16 @@ leftOf (Row ls) r        = Row (ls ++ [r])
 leftOf l        (Row rs) = Row (l : rs)
 leftOf l        r        = Row [l, r]
 
+infixl 4 `leftOf`
+
 -- | Request that the given fraction of the available space is allocated to
 --   the given element. For instance, @sized 0.25 s@ will request that @s@ is
 --   allocated 25% of the available screen space, while any elements it is
 --   composed with get to share the remaining 75%.
 sized :: Double -> Slide -> Slide
 sized = SizeReq
+
+infixl 5 `sized`
 
 -- | Create a layout group out of one or more slides. A layout group is used
 --   to control how space is split among slides. For example:
