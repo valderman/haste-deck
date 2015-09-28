@@ -108,8 +108,10 @@ text :: String -> Slide
 text s = lift $ newElem "div" `with` ["textContent" =: s]
 
 -- | Render a string of text possibly containing markup.
-markup :: Markup -> Slide
-markup = html . toString . render
+--   When using @OverloadedStrings@ the string literal @"hello"@ is equivalent
+--   to @markup "hello"@.
+markup :: String -> Slide
+markup = html . toString . render . fromString
 
 -- | Render an image.
 image :: URL -> Slide
