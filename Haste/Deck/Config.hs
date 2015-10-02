@@ -7,7 +7,7 @@ import Haste.Deck.Transitions
 
 -- | Configuration for various aspects of decks.
 data Config = Config {
-    -- | Start presentation at this slide, clamped to @[0, last_slide]@.
+    -- | Start presentation at this slide, clamped to @[1, num_slides]@.
     --   Default: @0@
     startAtSlide  :: Int,
 

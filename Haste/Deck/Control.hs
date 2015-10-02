@@ -22,7 +22,7 @@ forward = liftIO . concurrent . flip putMVar Next . deckProceedMVar
 back :: MonadIO m => Deck -> m ()
 back = liftIO . concurrent . flip putMVar Prev . deckProceedMVar
 
--- | Go to the given slide. Clamped to @[0, num_slides-1]@.
+-- | Go to the given slide. Clamped to @[1, num_slides]@.
 goto :: MonadIO m => Deck -> Int -> m ()
 goto d = liftIO . concurrent . putMVar (deckProceedMVar d) . Goto
 
@@ -74,13 +74,12 @@ disableDeck d = liftIO $ do
 present :: Config -> [Slide] -> IO Deck
 present cfg s = do
     hash <- getHash
-    let setSlideNo = case (hash, fromString hash) of
-                       ("0", _)     -> const 0
-                       (_, Just ix) -> const ix
-                       _            -> id
+    let setSlideNo = case fromString hash of
+                       Just ix | ix > 0 -> const ix
+                       _                -> id
     r <- newIORef True
     d <- flip createDeck s $ cfg {startAtSlide = setSlideNo $ startAtSlide cfg,
-                                  onSlideChange = \_ n -> safeSetHash r (show n)}
+                                  onSlideChange = \_ n -> safeSetHash r n}
     onHashChange $ \_ h -> do
       enable <- readIORef r
       when enable $ do
@@ -93,9 +92,9 @@ present cfg s = do
   where
     -- Hack to work around the fact that setting the hash triggers the
     -- hashchange event.
-    safeSetHash r hash = do
+    safeSetHash r slide = do
       writeIORef r False
-      setHash hash
+      setHash (show slide)
       void $ setTimer (Once 100) $ writeIORef r True
 
 -- | Run presenter mode without returning the deck.

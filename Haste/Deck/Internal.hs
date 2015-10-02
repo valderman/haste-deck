@@ -32,13 +32,13 @@ createDeck cfg s = liftIO $ do
                                style "display" =: "block"]
     v <- newEmptyMVar
     s' <- mapM toElem s
-    let (l, r) = case splitAt (startAtSlide cfg) s' of
+    let (l, r) = case splitAt (startAtSlide cfg-1) s' of
                    (left, []) -> (init left, [last left])
                    lr         -> lr
     when (not $ null s') $ do
       concurrent . fork $ do
         setChildren inner (take 1 r)
-        start e (takeMVar v) (length s'-1) s' inner l r (startAtSlide cfg)
+        start e (takeMVar v) (length s'-1) s' inner l r (startAtSlide cfg-1)
     Deck e v `fmap` newIORef Nothing
   where
     t = transition cfg
@@ -55,7 +55,7 @@ createDeck cfg s = liftIO $ do
                   Prev | not (null prev) ->
                     (drop 1 prev, head prev:next, ix-1)
                   Goto n ->
-                    let i = max 0 (min maxindex n)
+                    let i = max 0 (min maxindex (n-1))
                         (l, r) = splitAt i slides
                     in (reverse l, r, i)
                   Skip n ->
@@ -90,7 +90,7 @@ createDeck cfg s = liftIO $ do
                       transitionFinished t ix ix' parent inner newinner
                       setChildren newinner [new]
                       setChildren parent [newinner]
-                      onSlideChange cfg ix ix'
+                      onSlideChange cfg (ix+1) (ix'+1)
                       concurrent $ go newinner prev next ix'
 
           void . requestAnimationFrame $ \t1 -> do
