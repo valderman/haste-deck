@@ -73,9 +73,13 @@ disableDeck d = liftIO $ do
 --   the URL for which slide to start at.
 present :: Config -> [Slide] -> IO Deck
 present cfg s = do
-    slideNo <- maybe (0 :: Int) id . fromString <$> getHash
+    hash <- getHash
+    let setSlideNo = case (hash, fromString hash) of
+                       ("0", _)     -> const 0
+                       (_, Just ix) -> const ix
+                       _            -> id
     r <- newIORef True
-    d <- flip createDeck s $ cfg {startAtSlide = slideNo,
+    d <- flip createDeck s $ cfg {startAtSlide = setSlideNo $ startAtSlide cfg,
                                   onSlideChange = \_ n -> safeSetHash r (show n)}
     onHashChange $ \_ h -> do
       enable <- readIORef r
