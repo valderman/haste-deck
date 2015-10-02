@@ -53,7 +53,7 @@ In this example we're using the default configuration with `pan` transition,
 but this is user configurable:
 
     main :: IO ()
-    main = present def {transition = pan} [one, two, three, four, five]
+    main = present_ def {transition = pan} [one, two, three, four, five]
 
 Arrow keys, page up/down and left/right swipe gestures switch between slides;
 home and end keys go to the first and the last slide respectively.

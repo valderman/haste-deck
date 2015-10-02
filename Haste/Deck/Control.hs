@@ -1,7 +1,7 @@
 -- | Controls and helpers for changing slides in a deck.
 module Haste.Deck.Control (
     forward, back, goto, skip,
-    present, enableDeck, disableDeck
+    present, present_, enableDeck, disableDeck
   ) where
 import Control.Monad
 import Control.Monad.IO.Class
@@ -69,8 +69,8 @@ disableDeck d = liftIO $ do
     Nothing    -> return ()
 
 -- | Run a deck in "presenter mode" - display slides in full screen, hook the
---   arrow and page up/down keys for navigation, and inspect the hash part of
---   the URL for which slide to start at.
+--   keys and touch events used by 'enableDeck' for navigation, and inspect
+--   the hash part of the URL for which slide to start at.
 present :: Config -> [Slide] -> IO Deck
 present cfg s = do
     hash <- getHash
@@ -97,6 +97,10 @@ present cfg s = do
       writeIORef r False
       setHash hash
       void $ setTimer (Once 100) $ writeIORef r True
+
+-- | Run presenter mode without returning the deck.
+present_ :: Config -> [Slide] -> IO ()
+present_ cfg slides = void $ present cfg slides
 
 data Direction = L | R
 

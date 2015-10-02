@@ -13,7 +13,7 @@ module Haste.Deck (
     forward, back, goto, skip,
 
     -- * Building and using slide decks
-    createDeck, enableDeck, disableDeck, present, toElem,
+    createDeck, enableDeck, disableDeck, present, present_, toElem,
 
     -- * CSS/DOM inclusion
     lift, element, html, withAttrs, groupAttrs, withClass,
