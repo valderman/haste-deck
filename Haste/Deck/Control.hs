@@ -3,9 +3,10 @@ module Haste.Deck.Control (
     forward, back, goto, skip,
     present, enableDeck, disableDeck
   ) where
+import Control.Monad
 import Control.Monad.IO.Class
 import Data.IORef
-import Haste (getHash, setHash, fromString)
+import Haste
 import Haste.Concurrent
 import Haste.DOM
 import Haste.Events
@@ -61,9 +62,23 @@ disableDeck d = liftIO $ do
 --   the URL for which slide to start at.
 present :: Config -> [Slide] -> IO Deck
 present cfg s = do
-  slideNo <- maybe (0 :: Int) id . fromString <$> getHash
-  d <- flip createDeck s $ cfg {startAtSlide = slideNo,
-                                onSlideChange = \_ n -> setHash (show n)}
-  setChildren documentBody [d]
-  enableDeck d
-  return d
+    slideNo <- maybe (0 :: Int) id . fromString <$> getHash
+    r <- newIORef True
+    d <- flip createDeck s $ cfg {startAtSlide = slideNo,
+                                  onSlideChange = \_ n -> safeSetHash r (show n)}
+    onHashChange $ \_ h -> do
+      enable <- readIORef r
+      when enable $ do
+        case fromString h of
+          Just n -> goto d n
+          _      -> goto d 0
+    setChildren documentBody [d]
+    enableDeck d
+    return d
+  where
+    -- Hack to work around the fact that setting the hash triggers the
+    -- hashchange event.
+    safeSetHash r hash = do
+      writeIORef r False
+      setHash hash
+      void $ setTimer (Once 100) $ writeIORef r True

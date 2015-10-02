@@ -38,12 +38,12 @@ createDeck cfg s = liftIO $ do
     when (not $ null s') $ do
       concurrent . fork $ do
         setChildren inner (take 1 r)
-        start e (takeMVar v) (length s') inner l r (startAtSlide cfg)
+        start e (takeMVar v) (length s') s' inner l r (startAtSlide cfg)
     Deck e v `fmap` newIORef Nothing
   where
     t = transition cfg
 
-    start parent wait count = go
+    start parent wait count slides = go
       where
         go :: Elem -> [Elem] -> [Elem] -> Int -> CIO ()
         go inner prev next@(x:xs) ix = do
@@ -56,12 +56,12 @@ createDeck cfg s = liftIO $ do
                     (drop 1 prev, head prev:next, ix-1)
                   Goto n ->
                     let i = max 0 (min count n)
-                        (l, r) = splitAt i (reverse prev ++ next)
-                    in (l, r, i)
+                        (l, r) = splitAt i slides
+                    in (reverse l, r, i)
                   Skip n ->
                     let i = max 0 (min count (ix+n))
-                        (l, r) = splitAt i (reverse prev ++ next)
-                    in (l, r, i)
+                        (l, r) = splitAt i slides
+                    in (reverse l, r, i)
                   _ ->
                     (prev, next, ix)
           if ix /= ix'
