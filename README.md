@@ -40,13 +40,11 @@ Add some Markdown (or rather, a subset of Markdown) to spice it up further:
     four = "This text is to the *left*!" `leftOf` three
 
 When we are done, we can create a deck out of our slides and display it.
-In this example we're using the `pan` transition, but this is user configurable:
+In this example we're using the default configuration with `pan` transition,
+but this is user configurable:
 
     main :: IO ()
-    main = do
-      deck <- createDeck pan [one, two, three, four]
-      appendChild documentBody deck
-      enableDeck deck
+    main = present def {transition = pan} [one, two, three, four]
 
 Arrow keys and page up/down switch between slides.
 Custom input configuration and per slide transitions are not yet implemented.
