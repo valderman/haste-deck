@@ -33,6 +33,10 @@ skip d = liftIO . concurrent . putMVar (deckProceedMVar d) . Skip
 -- | Hook keydown events for left and right, pgup and pgdn and use them to flip
 --   between the slides of the given deck.
 --   Also hooks home and end to skip to the first and last slide respectively.
+--
+--   Note that it is not necessary to call @enableDeck@ in order to animate
+--   a deck; it is a mere convenience function. For more fine-grained control,
+--   'forward', 'back', etc. can be used to change slides on custom triggers.
 enableDeck :: MonadIO m => Deck -> m ()
 enableDeck d = liftIO $ do
   -- IORefs are fine here since there's no concurrency to worry about
