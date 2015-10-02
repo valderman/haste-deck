@@ -42,11 +42,10 @@ Add some Markdown (or rather, a subset of Markdown) to spice it up further:
 Since we're all the way at the end of our presentation, maybe the presenter
 wants an easy way to skip back to a previous slide? We can do this by using
 a hyperlink to the slide we want to jump to. Of course, we could jump forward
-as well. Note that slide indices start at zero, so linking to `#2` gets us
-to the third slide.
+as well.
 
     five :: Slide
-    five = "Go back to [slide three](#2)!"
+    five = "Go back to [slide three](#3)!"
 
 When we are done, we can create a deck out of our slides and display it.
 In this example we're using the default configuration with `pan` transition,
