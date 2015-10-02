@@ -40,7 +40,7 @@ skip d = liftIO . concurrent . putMVar (deckProceedMVar d) . Skip
 enableDeck :: MonadIO m => Deck -> m ()
 enableDeck d = liftIO $ do
   -- IORefs are fine here since there's no concurrency to worry about
-  oldhandler <- readIORef (deckKeyHandler d)
+  oldhandler <- readIORef (deckUnregHandler d)
   case oldhandler of
     Just _  -> return ()
     Nothing -> do
@@ -53,16 +53,20 @@ enableDeck d = liftIO $ do
           36 -> goto d 0        -- home
           35 -> goto d maxBound -- end
           _  -> return ()
-      writeIORef (deckKeyHandler d) (Just h)
+      unswipe <- onSwipe $ \dir -> do
+        case dir of
+          L -> forward d
+          R -> back d
+      writeIORef (deckUnregHandler d) (Just $ unregisterHandler h >> unswipe)
 
 -- | Stop catching keydown events for the given deck.
 disableDeck :: MonadIO m => Deck -> m ()
 disableDeck d = liftIO $ do
   -- IORefs are fine here since there's no concurrency to worry about
-  oldhandler <- readIORef (deckKeyHandler d)
-  case oldhandler of
-    Just h  -> unregisterHandler h >> writeIORef (deckKeyHandler d) Nothing
-    Nothing -> return ()
+  munreg <- readIORef (deckUnregHandler d)
+  case munreg of
+    Just unreg -> unreg >> writeIORef (deckUnregHandler d) Nothing
+    Nothing    -> return ()
 
 -- | Run a deck in "presenter mode" - display slides in full screen, hook the
 --   arrow and page up/down keys for navigation, and inspect the hash part of
@@ -89,3 +93,41 @@ present cfg s = do
       writeIORef r False
       setHash hash
       void $ setTimer (Once 100) $ writeIORef r True
+
+data Direction = L | R
+
+-- | Runs an action when a single touch left or right swipe happens.
+onSwipe :: (Direction -> IO ()) -> IO (IO ())
+onSwipe m = do
+  r <- newIORef Nothing
+
+  -- When a touch happens, save the coordinates for later.
+  h1 <- documentBody `onEvent` TouchStart $ \td -> do
+    case changedTouches td of
+      [t] -> writeIORef r (Just t)
+      _   -> return ()
+
+  -- If the previously registered touch moves, register a swipe if it moves
+  -- horizontally by >=30 pixels and vertically by <30 pixels.
+  h2 <- documentBody `onEvent` TouchMove $ \td -> do
+    mt <- readIORef r
+    case (mt, changedTouches td) of
+      (Just t, [t']) | identifier t == identifier t' -> do
+        case (screenCoords t, screenCoords t') of
+          ((x, y), (x', y'))
+            | abs y - abs y' >= 30  -> return () -- diagonal swipe; ignore
+            | x' - x         <= -30 -> writeIORef r Nothing >> m L
+            | x' - x         >= 30  -> writeIORef r Nothing >> m R
+            | otherwise             -> return ()
+      _ -> do
+        return ()
+
+  -- When the registered touch leaves the screen, unregister it.
+  h3 <- documentBody `onEvent` TouchEnd $ \td -> do
+    mtouch <- readIORef r
+    case fmap identifier mtouch of
+      Just ident | any (\t' -> ident == identifier t') (changedTouches td) -> do
+        writeIORef r Nothing
+      _ -> do
+        return ()
+  return $ mapM_ unregisterHandler [h1, h2, h3]

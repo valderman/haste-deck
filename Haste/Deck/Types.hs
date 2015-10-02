@@ -3,7 +3,6 @@ module Haste.Deck.Types (Slide (..), Deck (..), Proceed (..), mapLeaf) where
 import Data.IORef
 import Haste.Concurrent hiding (wait)
 import Haste.DOM
-import Haste.Events
 
 -- | A somewhat restricted DOM/CSS representation of a partial web page,
 --   specifically geared towards creating presentations and slide shows.
@@ -18,13 +17,13 @@ data Slide
 -- | A deck of slides.
 data Deck = Deck {
     -- | Container element
-    deckContainer   :: !Elem,
+    deckContainer    :: !Elem,
 
     -- | MVar to write to when a slide change event occurs.
-    deckProceedMVar :: !(MVar Proceed),
+    deckProceedMVar  :: !(MVar Proceed),
 
-    -- | 'HandlerInfo' of the deck's key hooks, if installed.
-    deckKeyHandler  :: !(IORef (Maybe HandlerInfo))
+    -- | Action to unregister all handlers for the deck, if installed.
+    deckUnregHandler :: !(IORef (Maybe (IO ())))
   }
 
 instance IsElem Deck where
