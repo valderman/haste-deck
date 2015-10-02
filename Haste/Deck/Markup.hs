@@ -16,7 +16,7 @@ newtype Markup = Markup {unM :: JSString}
 instance IsString Markup where
   fromString = Markup . fromString
 
--- | Render the given 'Markup' into a 'String' of HTML.
+-- | Render the given 'Markup' into a 'JSString' of HTML.
 render :: Markup -> JSString
 render = em . strong . code . link . unM
 

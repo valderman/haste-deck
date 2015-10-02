@@ -1,16 +1,18 @@
+{-# LANGUAGE OverloadedStrings #-}
 -- | Runner functions with lots of internal, nasty IO/DOM/CSS stuff.
 module Haste.Deck.Internal (createDeck, toElem) where
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.IORef
+import Haste (toJSString)
 import Haste.Concurrent hiding (wait)
-import Haste (toString)
-import Haste.DOM
+import Haste.DOM.JSString
 import Haste.Deck.Config
 import Haste.Deck.Types
 import Haste.Deck.Transitions
 import Haste.Graphics.AnimationFrame
 import Haste.Performance
+import qualified Haste.JSString as J
 
 -- | Create a deck of slides.
 createDeck :: MonadIO m => Config -> [Slide] -> m Deck
@@ -111,11 +113,12 @@ rowOrCol what unalloc xs = do
       let (pos', szstr) = case x of
                             SizeReq r _ -> (pos + r, pctstr r)
                             _           -> (pos + step, stepStr)
+          posstr = J.snoc (toJSString (pos*100)) '%'
       e <- toElem x
       e' <- newElem "div" `with` [children [e],
                                   othersz          =: "100%",
                                   sizeattr         =: szstr,
-                                  posattr          =: (toString (pos*100)++"%"),
+                                  posattr          =: posstr,
                                   style "position" =: "absolute"]
       appendChild parent e'
       return pos'
@@ -123,8 +126,8 @@ rowOrCol what unalloc xs = do
     return parent
   where
     step = unalloc / fromIntegral (length xs - length [0::Int | SizeReq _ _ <- xs])
-    stepStr = show (step*100) ++ "%"
-    pctstr frac = show (frac*100) ++ "%"
+    stepStr = J.snoc (toJSString (step*100)) '%'
+    pctstr frac = J.snoc (toJSString (frac*100)) '%'
     (sizeattr, posattr, othersz) =
       case what of
         MkRow -> (style "width", style "left", style "height")

@@ -38,7 +38,8 @@ import Control.Monad
 import Data.List hiding (group)
 import Data.String
 import Haste hiding (fromString)
-import Haste.DOM
+import Haste.DOM.JSString
+import qualified Haste.JSString as J
 import Haste.Deck.Config
 import Haste.Deck.Control
 import Haste.Deck.Internal
@@ -55,10 +56,10 @@ data FontSize
   | Em Int
   | Px Int
 
-instance Show FontSize where
-  show (Pt n) = show n ++ "pt"
-  show (Em n) = show n ++ "em"  
-  show (Px n) = show n ++ "px"
+fontSizeString :: FontSize -> JSString
+fontSizeString (Pt n) = J.append (toJSString n) "pt"
+fontSizeString (Em n) = J.append (toJSString n) "em"
+fontSizeString (Px n) = J.append (toJSString n) "px"
 
 -- | Slide element alignment. West/East instead of Left/Right to avoid clashing
 --   with 'Either'.
@@ -67,7 +68,7 @@ data Alignment
   | Center
   | East
 
-alignString :: Alignment -> String
+alignString :: Alignment -> JSString
 alignString West   = "left"
 alignString Center = "center"
 alignString East   = "right"
@@ -75,7 +76,7 @@ alignString East   = "right"
 -- | A list may be either numbered or unnumbered.
 data ListStyle = Numbered | Unnumbered
 
-listStyleString :: ListStyle -> String
+listStyleString :: ListStyle -> JSString
 listStyleString Numbered = "ol"
 listStyleString Unnumbered = "ul"
 
@@ -94,7 +95,7 @@ lift = Lift . fmap elemOf
 -- | Include verbatim HTML in a slide.
 --   Any elements to be centered should declare @display: inline-block@.
 html :: String -> Slide
-html s = lift $ newElem "div" `with` ["innerHTML" =: s]
+html s = lift $ newElem "div" `with` ["innerHTML" =: toJSString s]
 
 -- | Apply a list of attributes to the given slide.
 withAttrs :: [Attribute] -> Slide -> Slide
@@ -110,11 +111,11 @@ groupAttrs as s              = PStyle as s
 
 -- | Display the given slide with the given CSS class.
 withClass :: String -> Slide -> Slide
-withClass c = groupAttrs ["className" =: c]
+withClass c = groupAttrs ["className" =: toJSString c]
 
 -- | Render a string of text.
 text :: String -> Slide
-text s = lift $ newElem "div" `with` ["textContent" =: s]
+text s = lift $ newElem "div" `with` ["textContent" =: toJSString s]
 
 -- | Render a string of text possibly containing markup.
 --   When using @OverloadedStrings@ the string literal @"hello"@ is equivalent
@@ -124,7 +125,7 @@ markup = html . toString . render . fromString
 
 -- | Render an image.
 image :: URL -> Slide
-image url = lift $ newElem "img" `with` ["src" =: url]
+image url = lift $ newElem "img" `with` ["src" =: toJSString url]
 
 data List = Sublist ListStyle Markup [List] | Line Markup
 
@@ -144,12 +145,12 @@ list listtype rows = lift $ do
     return e
   where
     mkListItem (Line s) = do
-      newElem "li" `with` ["innerHTML" =: toString (render s),
+      newElem "li" `with` ["innerHTML" =: render s,
                            style "text-align" =: "left"]
     mkListItem (Sublist sty heading xs) = do
       e <- newElem (listStyleString sty)
       mapM_ (mkListItem >=> appendChild e) xs
-      newElem "li" `with` ["innerHTML" =: toString (render heading),
+      newElem "li" `with` ["innerHTML" =: render heading,
                            children [e]]
 
 -- | Create a sublist from a list style, a sublist heading, and a list of
@@ -159,25 +160,25 @@ sublist = Sublist
 
 -- | Render the given slide using the given color.
 color :: String -> Slide -> Slide
-color c = withAttrs [style "color" =: c]
+color c = withAttrs [style "color" =: toJSString c]
 
 -- | Render the text and other primitive elements in the given slide with the
 --   given background color.
 textBackground :: String -> Slide -> Slide
-textBackground c = withAttrs [style "background-color" =: c]
+textBackground c = withAttrs [style "background-color" =: toJSString c]
 
 -- | Render the given slide using the given background color for its whole
 --   layout group.
 backgroundColor :: String -> Slide -> Slide
-backgroundColor c = groupAttrs [style "background-color" =: c]
+backgroundColor c = groupAttrs [style "background-color" =: toJSString c]
 
 -- | Display the given slide with the given font size.
 fontSize :: FontSize -> Slide -> Slide
-fontSize sz = withAttrs [style "fontSize" =: show sz]
+fontSize sz = withAttrs [style "fontSize" =: fontSizeString sz]
 
 -- | Display the given slide with the given font face.
 font :: String -> Slide -> Slide
-font f = withAttrs [style "font-family" =: f]
+font f = withAttrs [style "font-family" =: toJSString f]
 
 -- | Display the given slide with the given alignment.
 aligned :: Alignment -> Slide -> Slide
