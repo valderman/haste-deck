@@ -39,12 +39,24 @@ Add some Markdown (or rather, a subset of Markdown) to spice it up further:
     four :: Slide
     four = "This text is to the *left*!" `leftOf` three
 
+Since we're all the way at the end of our presentation, maybe the presenter
+wants an easy way to skip back to a previous slide? We can do this by using
+a hyperlink to the slide we want to jump to. Of course, we could jump forward
+as well. Note that slide indices start at zero, so linking to `#2` gets us
+to the third slide.
+
+    five :: Slide
+    five = "Go back to [slide three](#2)!"
+
 When we are done, we can create a deck out of our slides and display it.
 In this example we're using the default configuration with `pan` transition,
 but this is user configurable:
 
     main :: IO ()
-    main = present def {transition = pan} [one, two, three, four]
+    main = present def {transition = pan} [one, two, three, four, five]
 
-Arrow keys and page up/down switch between slides.
-Custom input configuration and per slide transitions are not yet implemented.
+Arrow keys, page up/down and left/right swipe gestures switch between slides;
+home and end keys go to the first and the last slide respectively.
+
+Of course, custom slide controls are available as well. Run `cabal haddock` and
+see for yourself.
