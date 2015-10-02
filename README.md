@@ -14,7 +14,7 @@ required to display a slideshow.
 
 A simple example of a slide would be the Hello World slide.
 Note that `OverloadedStrings` is used to create text slides from string
-literals; purists may want to avoid this and instead use the `text` function
+literals; purists may want to avoid this and instead use the `markup` function
 from `Haste.Deck`.
 
     {-# LANGUAGE OverloadedStrings #-}
