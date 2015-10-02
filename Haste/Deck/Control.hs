@@ -32,6 +32,7 @@ skip d = liftIO . concurrent . putMVar (deckProceedMVar d) . Skip
 
 -- | Hook keydown events for left and right, pgup and pgdn and use them to flip
 --   between the slides of the given deck.
+--   Also hooks home and end to skip to the first and last slide respectively.
 enableDeck :: MonadIO m => Deck -> m ()
 enableDeck d = liftIO $ do
   -- IORefs are fine here since there's no concurrency to worry about
@@ -41,10 +42,12 @@ enableDeck d = liftIO $ do
     Nothing -> do
       h <- documentBody `onEvent` KeyDown $ \key -> do
         case key of
-          37 -> back d    -- left
-          39 -> forward d -- right
-          33 -> back d    -- pgup
-          34 -> forward d -- pgdn
+          37 -> back d          -- left
+          39 -> forward d       -- right
+          33 -> back d          -- pgup
+          34 -> forward d       -- pgdn
+          36 -> goto d 0        -- home
+          35 -> goto d maxBound -- end
           _  -> return ()
       writeIORef (deckKeyHandler d) (Just h)
 
