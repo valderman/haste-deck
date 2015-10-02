@@ -3,7 +3,6 @@ module Haste.Deck.Config (
     startAtSlide, transition, onSlideChange
   ) where
 import Data.Default
-import Haste.DOM (Elem)
 import Haste.Deck.Transitions
 
 -- | Configuration for various aspects of decks.
@@ -19,7 +18,7 @@ data Config = Config {
     -- | Callback to be executed whenever the slide changes. This callback
     --   will fire *after* the slide change animation has completed.
     --   Default: @\_ _ -> return ()@
-    onSlideChange :: Int -> Elem -> IO ()
+    onSlideChange :: Int -> Int -> IO ()
   }
 
 instance Default Config where

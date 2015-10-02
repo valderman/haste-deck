@@ -1,37 +1,16 @@
-module Haste.Deck.Internal (createDeck, enableDeck, disableDeck, toElem) where
+-- | Runner functions with lots of internal, nasty IO/DOM/CSS stuff.
+module Haste.Deck.Internal (createDeck, toElem) where
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.IORef
 import Haste.Concurrent hiding (wait)
 import Haste (toString)
 import Haste.DOM
-import Haste.Events
 import Haste.Deck.Config
 import Haste.Deck.Types
 import Haste.Deck.Transitions
 import Haste.Graphics.AnimationFrame
 import Haste.Performance
-
--- | Hook keydown events for left, right, pgup and pgdn and use them to flip
---   between the slides of the given deck.
-enableDeck :: MonadIO m => Deck -> m ()
-enableDeck d = liftIO $ do
-  -- IORefs are fine here since there's no concurrency to worry about
-  oldhandler <- readIORef (deckKeyHandler d)
-  case oldhandler of
-    Just _  -> return ()
-    Nothing -> do
-      h <- documentBody `onEvent` KeyDown $ concurrent . putMVar (deckKeyMVar d)
-      writeIORef (deckKeyHandler d) (Just h)
-
--- | Stop catching keydown events for the given deck.
-disableDeck :: MonadIO m => Deck -> m ()
-disableDeck d = liftIO $ do
-  -- IORefs are fine here since there's no concurrency to worry about
-  oldhandler <- readIORef (deckKeyHandler d)
-  case oldhandler of
-    Just h  -> unregisterHandler h >> writeIORef (deckKeyHandler d) Nothing
-    Nothing -> return ()
 
 -- | Create a deck of slides.
 createDeck :: MonadIO m => Config -> [Slide] -> m Deck
@@ -59,60 +38,64 @@ createDeck cfg s = liftIO $ do
     when (not $ null s') $ do
       concurrent . fork $ do
         setChildren inner (take 1 r)
-        go e inner (waitMove v) l r
+        start e (takeMVar v) (length s') inner l r (startAtSlide cfg)
     Deck e v `fmap` newIORef Nothing
   where
     t = transition cfg
 
-    go parent inner wait prev next@(x:xs) = do
-      n <- wait
-      let (prev', next'@(x':_), changed) =
-            case n of
-              Next | not (null xs)   -> (x:prev, xs, True)
-              Prev | not (null prev) -> (drop 1 prev, head prev:next, True)
-              _                      -> (prev, next, False)
-      if changed
-        then liftIO $ changeSlide n parent inner wait prev' next' x'
-        else go parent inner wait prev next
-    go _ _ _ _ _ = do
-      error "Shouldn't get here!"
+    start parent wait count = go
+      where
+        go :: Elem -> [Elem] -> [Elem] -> Int -> CIO ()
+        go inner prev next@(x:xs) ix = do
+          proceed <- wait
+          let (prev', next'@(x':_), ix') =
+                case proceed of
+                  Next | not (null xs) ->
+                    (x:prev, xs, ix+1)
+                  Prev | not (null prev) ->
+                    (drop 1 prev, head prev:next, ix-1)
+                  Goto n ->
+                    let i = max 0 (min count n)
+                        (l, r) = splitAt i (reverse prev ++ next)
+                    in (l, r, i)
+                  Skip n ->
+                    let i = max 0 (min count (ix+n))
+                        (l, r) = splitAt i (reverse prev ++ next)
+                    in (l, r, i)
+                  _ ->
+                    (prev, next, ix)
+          if ix /= ix'
+            then liftIO $ changeSlide inner prev' next' x' ix ix'
+            else go inner prev next ix
+        go _ _ _ _ = do
+          error "Shouldn't get here!"
 
-    -- Animate the transition from an old one to a new
-    changeSlide dir parent inner wait prev next new = do
-      t0 <- now
-      let duration = transitionDuration t
-      newinner <- newElem "div" `with` [style "width" =: "100%",
-                                        style "height" =: "100%",
-                                        style "position" =: "absolute",
-                                        children [new]]
-      let animate =
-            \t1 -> do
-              let progress = min ((t1-t0)/duration) 1
-              transitionStep t progress dir parent inner newinner
-              if progress < 1
-                then do
-                  void $ requestAnimationFrame animate
-                else do
-                  transitionFinished t dir parent inner newinner
-                  setChildren newinner [new]
-                  setChildren parent [newinner]
-                  onSlideChange cfg (length prev) newinner
-                  concurrent $ go parent newinner wait prev next
+        -- Animate the transition from an old one to a new
+        changeSlide :: Elem -> [Elem] -> [Elem] -> Elem -> Int -> Int -> IO ()
+        changeSlide inner prev next new ix ix' = do
+          t0 <- now
+          let duration = transitionDuration t
+          newinner <- newElem "div" `with` [style "width" =: "100%",
+                                            style "height" =: "100%",
+                                            style "position" =: "absolute",
+                                            children [new]]
+          let animate =
+                \t1 -> do
+                  let progress = min ((t1-t0)/duration) 1
+                  transitionStep t progress ix ix' parent inner newinner
+                  if progress < 1
+                    then do
+                      void $ requestAnimationFrame animate
+                    else do
+                      transitionFinished t ix ix' parent inner newinner
+                      setChildren newinner [new]
+                      setChildren parent [newinner]
+                      onSlideChange cfg ix ix'
+                      concurrent $ go newinner prev next ix'
 
-      void . requestAnimationFrame $ \t1 -> do
-        transitionSetup t dir parent inner newinner
-        animate t1
-
--- | Wait for an event that moves the slideshow forward or backward.
-waitMove :: MVar KeyData -> CIO NextSlide
-waitMove v = do
-  x <- takeMVar v
-  case x of
-    37 -> return Prev -- left
-    39 -> return Next -- right
-    33 -> return Prev -- pgup
-    34 -> return Next -- pgdn
-    _  -> waitMove v
+          void . requestAnimationFrame $ \t1 -> do
+            transitionSetup t ix ix' parent inner newinner
+            animate t1
 
 data RowOrCol = MkRow | MkCol
 

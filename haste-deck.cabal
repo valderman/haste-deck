@@ -17,6 +17,7 @@ library
     Haste.Deck.Transitions
   other-modules:
     Haste.Deck.Config
+    Haste.Deck.Control
     Haste.Deck.Internal
     Haste.Deck.Markup
     Haste.Deck.Types
