@@ -6,6 +6,7 @@ import Haste.Concurrent hiding (wait)
 import Haste (toString)
 import Haste.DOM
 import Haste.Events
+import Haste.Deck.Config
 import Haste.Deck.Types
 import Haste.Deck.Transitions
 import Haste.Graphics.AnimationFrame
@@ -33,8 +34,8 @@ disableDeck d = liftIO $ do
     Nothing -> return ()
 
 -- | Create a deck of slides.
-createDeck :: MonadIO m => Transition -> [Slide] -> m Deck
-createDeck t s = liftIO $ do
+createDeck :: MonadIO m => Config -> [Slide] -> m Deck
+createDeck cfg s = liftIO $ do
     inner <- newElem "div" `with` [style "width" =: "100%",
                                    style "height" =: "100%",
                                    style "position" =: "absolute"]
@@ -52,12 +53,17 @@ createDeck t s = liftIO $ do
                                style "display" =: "block"]
     v <- newEmptyMVar
     s' <- mapM toElem s
+    let (l, r) = case splitAt (startAtSlide cfg) s' of
+                   (left, []) -> (init left, [last left])
+                   lr         -> lr
     when (not $ null s') $ do
       concurrent . fork $ do
-        setChildren inner (take 1 s')
-        go e inner (waitMove v) [] s'
+        setChildren inner (take 1 r)
+        go e inner (waitMove v) l r
     Deck e v `fmap` newIORef Nothing
   where
+    t = transition cfg
+
     go parent inner wait prev next@(x:xs) = do
       n <- wait
       let (prev', next'@(x':_), changed) =
@@ -90,6 +96,7 @@ createDeck t s = liftIO $ do
                   transitionFinished t dir parent inner newinner
                   setChildren newinner [new]
                   setChildren parent [newinner]
+                  onSlideChange cfg (length prev) newinner
                   concurrent $ go parent newinner wait prev next
 
       void . requestAnimationFrame $ \t1 -> do

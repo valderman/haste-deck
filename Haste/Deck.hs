@@ -5,8 +5,12 @@ module Haste.Deck (
     -- * Basic types
     Slide, Deck,
 
+    -- * Deck configuration
+    Config, def,
+    startAtSlide, transition, onSlideChange,
+
     -- * Building and using slide decks
-    createDeck, enableDeck, disableDeck, toElem,
+    createDeck, enableDeck, disableDeck, present, toElem,
 
     -- * CSS/DOM inclusion
     lift, element, html, withAttrs, groupAttrs, withClass,
@@ -31,7 +35,9 @@ import Control.Monad
 import Data.List hiding (group)
 import Data.String
 import Haste hiding (fromString)
+import qualified Haste (fromString)
 import Haste.DOM
+import Haste.Deck.Config
 import Haste.Deck.Internal
 import Haste.Deck.Markup
 import Haste.Deck.Transitions
@@ -240,3 +246,15 @@ row = foldl1' leftOf
 -- | Create a column of slides, with all slides taking up equal space.
 column :: [Slide] -> Slide
 column = foldl1' above
+
+-- | Run a deck in "presenter mode" - display slides in full screen, hook the
+--   arrow and page up/down keys for navigation, and inspect the hash part of
+--   the URL for which slide to start at.
+present :: Config -> [Slide] -> IO Deck
+present cfg s = do
+  slideNo <- maybe (0 :: Int) id . Haste.fromString <$> getHash
+  d <- flip createDeck s $ cfg {startAtSlide = slideNo,
+                                onSlideChange = \n _ -> setHash (show n)}
+  setChildren documentBody [d]
+  enableDeck d
+  return d

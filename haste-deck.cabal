@@ -16,6 +16,7 @@ library
     Haste.Deck
     Haste.Deck.Transitions
   other-modules:
+    Haste.Deck.Config
     Haste.Deck.Internal
     Haste.Deck.Markup
     Haste.Deck.Types
@@ -25,7 +26,8 @@ library
   build-depends:
     base >=4.6 && <4.9,
     haste-lib >=0.5 && <0.6,
-    transformers >=0.4 && <0.5
+    transformers >=0.4 && <0.5,
+    data-default
   default-language:
     Haskell2010
   ghc-options:
