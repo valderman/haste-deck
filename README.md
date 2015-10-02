@@ -47,12 +47,19 @@ as well.
     five :: Slide
     five = "Go back to [slide three](#3)!"
 
+Sometimes, we don't want all sub-slides to take up equal space. For instance,
+we may want to reserve 90% of the available screen space for content and use
+the remaining 10% for a heading.
+
+    six :: Slide
+    six = two `above` sized 0.9 three
+
 When we are done, we can create a deck out of our slides and display it.
-In this example we're using the default configuration with `pan` transition,
-but this is user configurable:
+In this example we're using the default configuration plus the `pan` transition
+animation, but this is user configurable.
 
     main :: IO ()
-    main = present_ def {transition = pan} [one, two, three, four, five]
+    main = present_ def {transition = pan} [one, two, three, four, five, six]
 
 Arrow keys, page up/down and left/right swipe gestures switch between slides;
 home and end keys go to the first and the last slide respectively.
