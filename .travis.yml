@@ -7,10 +7,10 @@ before_install:
   - export PATH=$PWD/haste-compiler/bin:$PATH
 
 install: 
+  - cabal update
   - haste-cabal install -j --only-dependencies
 
 script:
-  - haste-cabal update
   - haste-cabal configure
   - haste-cabal build
   - haste-cabal check
