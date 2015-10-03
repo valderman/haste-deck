@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Haste.Deck.Transitions (
     -- * The 'Transition' type
     Progress, Transition, Proceed (..),
@@ -7,7 +8,9 @@ module Haste.Deck.Transitions (
     none, pan, fade, fadeOver, blend
   ) where
 import Haste.Deck.Types
-import Haste.DOM
+import Haste.DOM.JSString
+import Haste.JSString (snoc)
+import Haste (toJSString)
 
 type Progress = Double
 
@@ -59,11 +62,11 @@ pan = none {
     , transitionStep = \progress from to _ old new -> do
         let p = sin ((progress-0.5)*pi)*50+50
             oldpct
-              | from > to = show p ++ "%"
-              | otherwise = show (0 - p) ++ "%"
+              | from > to = toJSString p `snoc` '%'
+              | otherwise = toJSString (0 - p) `snoc` '%'
             newpct
-              | from > to = show (p - 100) ++ "%"
-              | otherwise = show (100 - p) ++ "%"
+              | from > to = toJSString (p - 100) `snoc` '%'
+              | otherwise = toJSString (100 - p) `snoc` '%'
         set old [style "left" =: oldpct]
         set new [style "left" =: newpct]
     }
@@ -82,16 +85,16 @@ fade = none {
 
     , transitionStep = \progress _ _ _ old new -> do
         if progress < 0.5
-          then set old [style "opacity" =: show (1 - progress*2)]
-          else set new [style "opacity" =: show (progress*2 - 1)]
+          then set old [style "opacity" =: toJSString  (1 - progress*2)]
+          else set new [style "opacity" =: toJSString  (progress*2 - 1)]
     }
 
 -- | Fade the old slide out while fading the new one in.
 blend :: Transition
 blend = fade {
     transitionStep = \progress _ _ _ old new -> do
-       set old [style "opacity" =: show (1 - progress)]
-       set new [style "opacity" =: show progress]
+       set old [style "opacity" =: toJSString  (1 - progress)]
+       set new [style "opacity" =: toJSString  progress]
   }
 
 -- | Fade the new slide in on top of the old one. This usually looks best for
@@ -99,5 +102,5 @@ blend = fade {
 fadeOver :: Transition
 fadeOver = fade {
     transitionStep = \progress _ _ _ _ new -> do
-       set new [style "opacity" =: show progress]
+       set new [style "opacity" =: toJSString progress]
   }
