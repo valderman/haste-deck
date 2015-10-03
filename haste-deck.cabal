@@ -1,15 +1,22 @@
 name:                haste-deck
 version:             0.1.0.0
 synopsis:            Create presentation slides and simple web pages using an intuitive EDSL
+description:         EDSL for embedding slideshows and presentations into web applications, or embedding web applications into slideshows and presentations, using the Haste compiler.
 homepage:            https://github.com/valderman/haste-deck
 license:             MIT
 license-file:        LICENSE
 author:              Anton Ekblad
 maintainer:          anton@ekblad.cc
--- copyright:           
 category:            Web
 build-type:          Simple
 cabal-version:       >=1.10
+homepage:            https://github.com/valderman/haste-deck/
+bug-reports:         https://github.com/valderman/haste-deck/issues
+stability:           Experimental
+
+source-repository head
+    type:       git
+    location:   https://github.com/valderman/haste-deck.git
 
 library
   exposed-modules:
@@ -26,10 +33,10 @@ library
     CPP
   build-depends:
     base >=4.6 && <4.9,
-    haste-lib >=0.5 && <0.6,
+    haste-lib >=0.5.2 && <0.6,
     transformers >=0.4 && <0.5,
     data-default
   default-language:
     Haskell2010
   ghc-options:
-    -Wall -Werror
+    -Wall
