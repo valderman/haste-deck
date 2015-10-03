@@ -1,0 +1,14 @@
+language: c
+sudo: false
+
+before_install:
+  - travis_retry wget http://haste-lang.org/ghc-7.10/haste-compiler_0.5.2_amd64.deb
+  - travis_retry sudo dpkg -i haste-compiler_0.5.2_amd64.deb
+
+install: 
+  - haste-cabal install -j --only-dependencies
+
+script:
+  - haste-cabal configure
+  - haste-cabal build
+  - haste-cabal check
