@@ -1,8 +1,10 @@
-haste-deck
+haste-deck [![Build Status](https://travis-ci.org/valderman/haste-deck.svg?branch=master)](https://travis-ci.org/valderman/haste-deck.svg?branch=master)
 ==========
 
 Slideshow/layout library for use with the
 [Haste compiler](http://haste-lang.org).
+Create presentations and slideshows and embed them into web applications, or
+embed web applications into your presentations and slideshows.
 
 Usage
 -----
