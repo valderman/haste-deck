@@ -144,7 +144,7 @@ list listtype rows = lift $ do
     mapM_ (mkListItem >=> appendChild e) rows
     return e
   where
-    mkListItem (Line s) = do
+    mkListItem (Line s) =
       newElem "li" `with` ["innerHTML" =: render s,
                            style "text-align" =: "left"]
     mkListItem (Sublist sty heading xs) = do

@@ -1,4 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Haste.Deck.Types (Slide (..), Deck (..), Proceed (..), mapLeaf) where
 import Data.IORef
 import Haste.Concurrent hiding (wait)

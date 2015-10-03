@@ -37,10 +37,9 @@ createDeck cfg s = liftIO $ do
     let (l, r) = case splitAt (startAtSlide cfg-1) s' of
                    (left, []) -> (init left, [last left])
                    lr         -> lr
-    when (not $ null s') $ do
-      concurrent . fork $ do
-        setChildren inner (take 1 r)
-        start e (takeMVar v) (length s'-1) s' inner l r (startAtSlide cfg-1)
+    unless (null s') $ concurrent . fork $ do
+      setChildren inner (take 1 r)
+      start e (takeMVar v) (length s'-1) s' inner l r (startAtSlide cfg-1)
     Deck e v `fmap` newIORef Nothing
   where
     t = transition cfg
@@ -69,7 +68,7 @@ createDeck cfg s = liftIO $ do
           if ix /= ix'
             then liftIO $ changeSlide inner prev' next' x' ix ix'
             else go inner prev next ix
-        go _ _ _ _ = do
+        go _ _ _ _ =
           error "Shouldn't get here!"
 
         -- Animate the transition from an old one to a new
@@ -81,13 +80,11 @@ createDeck cfg s = liftIO $ do
                                             style "height" =: "100%",
                                             style "position" =: "absolute",
                                             children [new]]
-          let animate =
-                \t1 -> do
+          let animate t1 = do
                   let progress = min ((t1-t0)/duration) 1
                   transitionStep t progress ix ix' parent inner newinner
                   if progress < 1
-                    then do
-                      void $ requestAnimationFrame animate
+                    then void $ requestAnimationFrame animate
                     else do
                       transitionFinished t ix ix' parent inner newinner
                       setChildren newinner [new]

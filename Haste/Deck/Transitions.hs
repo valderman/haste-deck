@@ -54,7 +54,7 @@ pan :: Transition
 pan = none {
       transitionDuration = 300
     
-    , transitionSetup = \from to parent old new -> do
+    , transitionSetup = \from to parent old new ->
         if from > to -- going backwards
           then insertChildBefore parent old new
           else appendChild parent new
@@ -63,7 +63,7 @@ pan = none {
         let p = sin ((progress-0.5)*pi)*50+50
             oldpct
               | from > to = toJSString p `snoc` '%'
-              | otherwise = toJSString (0 - p) `snoc` '%'
+              | otherwise = toJSString (negate p) `snoc` '%'
             newpct
               | from > to = toJSString (p - 100) `snoc` '%'
               | otherwise = toJSString (100 - p) `snoc` '%'
@@ -83,7 +83,7 @@ fade = none {
                  style "opacity" =: "0"]
         appendChild parent new
 
-    , transitionStep = \progress _ _ _ old new -> do
+    , transitionStep = \progress _ _ _ old new ->
         if progress < 0.5
           then set old [style "opacity" =: toJSString  (1 - progress*2)]
           else set new [style "opacity" =: toJSString  (progress*2 - 1)]
@@ -101,6 +101,6 @@ blend = fade {
 --   slides with an opaque background.
 fadeOver :: Transition
 fadeOver = fade {
-    transitionStep = \progress _ _ _ _ new -> do
-       set new [style "opacity" =: toJSString progress]
+    transitionStep = \progress _ _ _ _ new ->
+      set new [style "opacity" =: toJSString progress]
   }

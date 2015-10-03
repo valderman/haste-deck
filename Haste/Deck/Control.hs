@@ -44,7 +44,7 @@ enableDeck d = liftIO $ do
   case oldhandler of
     Just _  -> return ()
     Nothing -> do
-      h <- documentBody `onEvent` KeyDown $ \key -> do
+      h <- documentBody `onEvent` KeyDown $ \key ->
         case key of
           37 -> back d          -- left
           39 -> forward d       -- right
@@ -53,7 +53,7 @@ enableDeck d = liftIO $ do
           36 -> goto d 0        -- home
           35 -> goto d maxBound -- end
           _  -> return ()
-      unswipe <- onSwipe $ \dir -> do
+      unswipe <- onSwipe $ \dir ->
         case dir of
           L -> forward d
           R -> back d
@@ -82,10 +82,9 @@ present cfg s = do
                                   onSlideChange = \_ n -> safeSetHash r n}
     onHashChange $ \_ h -> do
       enable <- readIORef r
-      when enable $ do
-        case fromString h of
-          Just n -> goto d n
-          _      -> goto d 0
+      when enable $ case fromString h of
+                      Just n -> goto d n
+                      _      -> goto d 0
     setChildren documentBody [d]
     enableDeck d
     return d
@@ -109,7 +108,7 @@ onSwipe m = do
   r <- newIORef Nothing
 
   -- When a touch happens, save the coordinates for later.
-  h1 <- documentBody `onEvent` TouchStart $ \td -> do
+  h1 <- documentBody `onEvent` TouchStart $ \td ->
     case changedTouches td of
       [t] -> writeIORef r (Just t)
       _   -> return ()
@@ -119,22 +118,22 @@ onSwipe m = do
   h2 <- documentBody `onEvent` TouchMove $ \td -> do
     mt <- readIORef r
     case (mt, changedTouches td) of
-      (Just t, [t']) | identifier t == identifier t' -> do
+      (Just t, [t']) | identifier t == identifier t' ->
         case (screenCoords t, screenCoords t') of
           ((x, y), (x', y'))
             | abs y - abs y' >= 30  -> return () -- diagonal swipe; ignore
             | x' - x         <= -30 -> writeIORef r Nothing >> m L
             | x' - x         >= 30  -> writeIORef r Nothing >> m R
             | otherwise             -> return ()
-      _ -> do
+      _ ->
         return ()
 
   -- When the registered touch leaves the screen, unregister it.
   h3 <- documentBody `onEvent` TouchEnd $ \td -> do
     mtouch <- readIORef r
     case fmap identifier mtouch of
-      Just ident | any (\t' -> ident == identifier t') (changedTouches td) -> do
+      Just ident | any (\t' -> ident == identifier t') (changedTouches td) ->
         writeIORef r Nothing
-      _ -> do
+      _ ->
         return ()
   return $ mapM_ unregisterHandler [h1, h2, h3]
