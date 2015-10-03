@@ -17,7 +17,7 @@ data Transition = Transition {
 
     -- | One step of the transition animation.
     transitionStep     :: Progress -- ^ Progress of the animation as a floating
-                                   --   point number in the range (0, 1).
+                                   --   point number in the range [0, 1].
                        -> Int      -- ^ Which slide are we coming from?
                        -> Int      -- ^ Which slide are we going to?
                        -> Elem     -- ^ Parent element of slide.
@@ -49,7 +49,7 @@ none = Transition {
 --   when going backward.
 pan :: Transition
 pan = none {
-      transitionDuration = 200
+      transitionDuration = 300
     
     , transitionSetup = \from to parent old new -> do
         if from > to -- going backwards
@@ -57,12 +57,13 @@ pan = none {
           else appendChild parent new
 
     , transitionStep = \progress from to _ old new -> do
-        let oldpct
-              | from > to = show (progress * 100) ++ "%"
-              | otherwise = show (0 - progress * 100) ++ "%"
+        let p = sin ((progress-0.5)*pi)*50+50
+            oldpct
+              | from > to = show p ++ "%"
+              | otherwise = show (0 - p) ++ "%"
             newpct
-              | from > to = show (progress * 100 - 100) ++ "%"
-              | otherwise = show (100 - progress * 100) ++ "%"
+              | from > to = show (p - 100) ++ "%"
+              | otherwise = show (100 - p) ++ "%"
         set old [style "left" =: oldpct]
         set new [style "left" =: newpct]
     }
@@ -70,7 +71,7 @@ pan = none {
 -- | Fade the old slide out then fade the new one in.
 fade :: Transition
 fade = none {
-      transitionDuration = 200
+      transitionDuration = 300
     
     , transitionSetup = \_ _ parent _ new -> do
         set new [style "position" =: "absolute",
