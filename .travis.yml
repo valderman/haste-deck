@@ -10,6 +10,7 @@ install:
   - haste-cabal install -j --only-dependencies
 
 script:
+  - haste-cabal update
   - haste-cabal configure
   - haste-cabal build
   - haste-cabal check
