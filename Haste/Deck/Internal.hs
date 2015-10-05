@@ -3,9 +3,10 @@
 module Haste.Deck.Internal (createDeck, toElem) where
 import Control.Monad
 import Control.Monad.IO.Class
+import Data.Array
 import Data.IORef
 import Haste (toJSString)
-import Haste.Concurrent hiding (wait)
+import Haste.Concurrent hiding (wait, (!))
 import Haste.DOM.JSString
 import Haste.Deck.Config
 import Haste.Deck.Types
@@ -34,46 +35,34 @@ createDeck cfg s = liftIO $ do
                                style "display" =: "block"]
     v <- newEmptyMVar
     s' <- mapM toElem s
-    let (l, r) = case splitAt (startAtSlide cfg-1) s' of
-                   (left, []) -> (init left, [last left])
-                   lr         -> lr
+    let len    = length s'
+        slides = listArray (1, len) s'
+        ix     = max 1 (min len (startAtSlide cfg))
     unless (null s') $ concurrent . fork $ do
-      setChildren inner (take 1 r)
-      start e (takeMVar v) (length s'-1) s' inner l r (startAtSlide cfg-1)
-    Deck e v `fmap` newIORef Nothing
+      setChildren inner [slides ! ix]
+      start e (takeMVar v) len slides inner ix
+    Deck e slides v `fmap` newIORef Nothing
   where
     t = transition cfg
 
-    start parent wait maxindex slides = go
+    start parent wait len slides = go
       where
-        go :: Elem -> [Elem] -> [Elem] -> Int -> CIO ()
-        go inner prev next@(x:xs) ix = do
+        clamp = max 1 . min len
+        go inner ix = do
           proceed <- wait
-          let (prev', next'@(x':_), ix') =
-                case proceed of
-                  Next | not (null xs) ->
-                    (x:prev, xs, ix+1)
-                  Prev | not (null prev) ->
-                    (drop 1 prev, head prev:next, ix-1)
-                  Goto n ->
-                    let i = max 0 (min maxindex (n-1))
-                        (l, r) = splitAt i slides
-                    in (reverse l, r, i)
-                  Skip n ->
-                    let i = max 0 (min maxindex (ix+n))
-                        (l, r) = splitAt i slides
-                    in (reverse l, r, i)
-                  _ ->
-                    (prev, next, ix)
+          let ix' =
+               clamp $ case proceed of
+                         Next   -> ix+1
+                         Prev   -> ix-1
+                         Goto n -> n
+                         Skip n -> ix + n
           if ix /= ix'
-            then liftIO $ changeSlide inner prev' next' x' ix ix'
-            else go inner prev next ix
-        go _ _ _ _ =
-          error "Shouldn't get here!"
+            then liftIO $ changeSlide inner (slides ! ix') ix ix'
+            else go inner ix
 
         -- Animate the transition from an old one to a new
-        changeSlide :: Elem -> [Elem] -> [Elem] -> Elem -> Int -> Int -> IO ()
-        changeSlide inner prev next new ix ix' = do
+        changeSlide :: Elem -> Elem -> Int -> Int -> IO ()
+        changeSlide inner new ix ix' = do
           t0 <- now
           let duration = transitionDuration t
           newinner <- newElem "div" `with` [style "width" =: "100%",
@@ -89,8 +78,8 @@ createDeck cfg s = liftIO $ do
                       transitionFinished t ix ix' parent inner newinner
                       setChildren newinner [new]
                       setChildren parent [newinner]
-                      onSlideChange cfg (ix+1) (ix'+1)
-                      concurrent $ go newinner prev next ix'
+                      onSlideChange cfg ix ix'
+                      concurrent $ go newinner ix'
 
           void . requestAnimationFrame $ \t1 -> do
             transitionSetup t ix ix' parent inner newinner

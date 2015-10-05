@@ -1,4 +1,5 @@
 module Haste.Deck.Types (Slide (..), Deck (..), Proceed (..), mapLeaf) where
+import Data.Array
 import Data.IORef
 import Haste.Concurrent hiding (wait)
 import Haste.DOM
@@ -17,6 +18,8 @@ data Slide
 data Deck = Deck {
     -- | Container element
     deckContainer    :: !Elem,
+
+    deckSlides       :: !(Array Int Elem),
 
     -- | MVar to write to when a slide change event occurs.
     deckProceedMVar  :: !(MVar Proceed),
