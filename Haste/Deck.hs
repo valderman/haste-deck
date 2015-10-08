@@ -22,9 +22,10 @@ module Haste.Deck (
     sized, leftOf, above, group, row, column,
 
     -- * Styling
-    Markup, FontSize (..), Alignment (..),
+    Markup, Size (..), Alignment (..),
     aligned, centered, verticallyCentered,
-    color, textBackground, backgroundColor, fontSize, font,
+    color, textBackground, backgroundColor, fontSize, font, padded,
+    defaultTextPadding,
     
     -- * Primitives
     ListStyle (..),
@@ -53,15 +54,17 @@ instance IsString Slide where
   fromString = markup . fromString
 
 -- | A font size, expressed in points, elements or pixels.
-data FontSize
-  = Pt Int
-  | Em Int
-  | Px Int
+data Size
+  = Pt  Double
+  | Em  Double
+  | Px  Double
+  | Pct Double
 
-fontSizeString :: FontSize -> JSString
-fontSizeString (Pt n) = J.append (toJSString n) "pt"
-fontSizeString (Em n) = J.append (toJSString n) "em"
-fontSizeString (Px n) = J.append (toJSString n) "px"
+sizeString :: Size -> JSString
+sizeString (Pt  n) = J.append (toJSString n) "pt"
+sizeString (Em  n) = J.append (toJSString n) "em"
+sizeString (Px  n) = J.append (toJSString n) "px"
+sizeString (Pct n) = J.append (toJSString n) "%"
 
 -- | Slide element alignment. West/East instead of Left/Right to avoid clashing
 --   with 'Either'.
@@ -81,6 +84,14 @@ data ListStyle = Numbered | Unnumbered
 listStyleString :: ListStyle -> JSString
 listStyleString Numbered = "ol"
 listStyleString Unnumbered = "ul"
+
+-- | The default padding for text elements.
+textPadding :: JSString
+textPadding = sizeString defaultTextPadding
+
+-- | The default padding for text slides.
+defaultTextPadding :: Size
+defaultTextPadding = Pt 18
 
 -- | Include an arbitrary DOM element in a slide.
 --   In order for horizontal alignment to work properly, the element - or
@@ -117,7 +128,9 @@ withClass c = groupAttrs ["className" =: toJSString c]
 
 -- | Render a string of text.
 text :: String -> Slide
-text s = lift $ newElem "div" `with` ["textContent" =: toJSString s]
+text s = lift $ newElem "div" `with` ["textContent"   =: toJSString s,
+                                      style "margin"  =: "0px",
+                                      style "padding" =: textPadding]
 
 -- | Render a block of code with a fixed-width font.
 --   The code is escaped according to the rules of 'Markup'.
@@ -127,7 +140,7 @@ code s = lift $ do
                "innerHTML"        =: toJSString s,
                style "text-align" =: "left",
                style "margin"     =: "0px",
-               style "padding"    =: "0px"
+               style "padding"    =: textPadding
              ]
   newElem "div" `with` [children [inner], style "display" =: "inline-block"]
 
@@ -135,7 +148,9 @@ code s = lift $ do
 --   When using @OverloadedStrings@ the string literal @"hello"@ is equivalent
 --   to @markup "hello"@.
 markup :: String -> Slide
-markup s = lift $ newElem "div" `with` ["innerHTML" =: render (fromString s)]
+markup s = lift $ newElem "div" `with` ["innerHTML"     =: render (fromString s),
+                                        style "margin"  =: "0px",
+                                        style "padding" =: textPadding]
 
 -- | Render an image.
 image :: URL -> Slide
@@ -151,7 +166,7 @@ list :: ListStyle -> [List] -> Slide
 list listtype rows = lift $ do
     e <- newElem (listStyleString listtype) `with` [
            style "margin" =: "0px",
-           style "padding" =: "0px",
+           style "padding" =: textPadding,
            style "list-style-position" =: "inside",
            style "text-align" =: "left",
            style "display" =: "inline-block"]
@@ -187,8 +202,12 @@ backgroundColor :: String -> Slide -> Slide
 backgroundColor c = groupAttrs [style "background-color" =: toJSString c]
 
 -- | Display the given slide with the given font size.
-fontSize :: FontSize -> Slide -> Slide
-fontSize sz = withAttrs [style "fontSize" =: fontSizeString sz]
+fontSize :: Size -> Slide -> Slide
+fontSize sz = withAttrs [style "fontSize" =: sizeString sz]
+
+-- | Use the given amount of padding around the given slide.
+padded :: Size -> Slide -> Slide
+padded sz = withAttrs [style "padding" =: sizeString sz]
 
 -- | Display the given slide with the given font face.
 font :: String -> Slide -> Slide
