@@ -135,7 +135,7 @@ code s = lift $ do
 --   When using @OverloadedStrings@ the string literal @"hello"@ is equivalent
 --   to @markup "hello"@.
 markup :: String -> Slide
-markup = html . toString . render . fromString
+markup s = lift $ newElem "div" `with` ["innerHTML" =: render (fromString s)]
 
 -- | Render an image.
 image :: URL -> Slide
