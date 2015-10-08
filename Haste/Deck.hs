@@ -28,7 +28,7 @@ module Haste.Deck (
     
     -- * Primitives
     ListStyle (..),
-    markup, text, image, list, sublist,
+    markup, text, image, list, sublist, code,
 
     -- * Transitions
     Transition,
@@ -116,6 +116,16 @@ withClass c = groupAttrs ["className" =: toJSString c]
 -- | Render a string of text.
 text :: String -> Slide
 text s = lift $ newElem "div" `with` ["textContent" =: toJSString s]
+
+-- | Render a block of code with a fixed-width font.
+--   The code is escaped according to the rules of 'Markup'.
+code :: String -> Slide
+code s = lift $ do
+  inner <- newElem "pre" `with` [
+               "innerHTML" =: toJSString s,
+               style "text-align" =: "left"
+             ]
+  newElem "div" `with` [children [inner], style "display" =:]
 
 -- | Render a string of text possibly containing markup.
 --   When using @OverloadedStrings@ the string literal @"hello"@ is equivalent
