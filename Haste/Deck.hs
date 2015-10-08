@@ -125,7 +125,7 @@ code s = lift $ do
                "innerHTML" =: toJSString s,
                style "text-align" =: "left"
              ]
-  newElem "div" `with` [children [inner], style "display" =:]
+  newElem "div" `with` [children [inner], style "display" =: "inline-block"]
 
 -- | Render a string of text possibly containing markup.
 --   When using @OverloadedStrings@ the string literal @"hello"@ is equivalent
