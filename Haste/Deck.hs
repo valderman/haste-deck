@@ -125,7 +125,9 @@ code :: String -> Slide
 code s = lift $ do
   inner <- newElem "pre" `with` [
                "innerHTML"        =: toJSString s,
-               style "text-align" =: "left"
+               style "text-align" =: "left",
+               style "margin"     =: "0px",
+               style "padding"    =: "0px"
              ]
   newElem "div" `with` [children [inner], style "display" =: "inline-block"]
 
