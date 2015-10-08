@@ -24,7 +24,7 @@ module Haste.Deck (
     -- * Styling
     Markup, Size (..), Alignment (..),
     aligned, centered, verticallyCentered,
-    color, textBackground, backgroundColor, fontSize, font, padded,
+    color, textBackground, backgroundColor, fontSize, font, padded, scrolling,
     defaultTextPadding,
     
     -- * Primitives
@@ -208,6 +208,10 @@ fontSize sz = withAttrs [style "fontSize" =: sizeString sz]
 -- | Use the given amount of padding around the given slide.
 padded :: Size -> Slide -> Slide
 padded sz = withAttrs [style "padding" =: sizeString sz]
+
+-- | Enable scrolling for the given slide.
+scrolling :: Slide -> Slide
+scrolling = groupAttrs [style "overflow" =: "auto"]
 
 -- | Display the given slide with the given font face.
 font :: String -> Slide -> Slide
