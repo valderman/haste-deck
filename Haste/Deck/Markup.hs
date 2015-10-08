@@ -10,7 +10,8 @@ import Haste.JSString as S
 --     * Single and double asterisks, for EM and STRONG tags respectively.
 --     * Backticks for inline code.
 --     * Angle brackets and parenthesis for links.
---       The title attribute is currently not supported.
+--       (The title attribute is currently not supported.)
+--     * Newlines turn into @<br>@ tags.
 newtype Markup = Markup {unM :: JSString}
 
 instance IsString Markup where
@@ -18,7 +19,7 @@ instance IsString Markup where
 
 -- | Render the given 'Markup' into a 'JSString' of HTML.
 render :: Markup -> JSString
-render = em . strong . code . link . unM
+render = newline . em . strong . code . link . unM
 
 replaceTag :: JSString -> JSString -> JSString -> JSString
 replaceTag markup tag s =
@@ -36,3 +37,6 @@ code = replaceTag "`" "code"
 
 link :: JSString -> JSString
 link s = replace s (regex "\\[(.*?)\\]\\((.*?)\\)" "g") "<a href=\"$2\">$1</a>"
+
+newline :: JSString -> JSString
+newline s = replace s (regex "(\n)" "g") "<br>"
