@@ -1,4 +1,4 @@
-module Haste.Deck.Types (Slide (..), Deck (..), Proceed (..), mapLeaf) where
+module Haste.Deck.Types (Slide (..), Deck (..), Proceed (..)) where
 import Data.Array
 import Data.IORef
 import Haste.Concurrent hiding (wait)
@@ -34,14 +34,3 @@ instance IsElem Deck where
 -- | Which slide should we proceed to?
 data Proceed = Next | Prev | Goto Int | Skip Int
   deriving Eq
-
--- | Modify all leaf nodes in the current slide.
-mapLeaf :: (Slide -> Slide) -> Slide -> Slide
-mapLeaf f = go
-  where
-    go (Row xs)      = Row $ map go xs
-    go (Col xs)      = Col $ map go xs
-    go (Style as x)  = Style as $ go x
-    go (PStyle as x) = PStyle as $ go x
-    go (SizeReq r x) = SizeReq r $ go x
-    go x@(Lift _)    = f x

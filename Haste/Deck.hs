@@ -39,7 +39,9 @@ import Data.List hiding (group)
 import Data.String
 import Haste hiding (fromString)
 import Haste.DOM.JSString
+import Haste.Foreign
 import qualified Haste.JSString as J
+import System.IO.Unsafe
 import Haste.Deck.Config
 import Haste.Deck.Control
 import Haste.Deck.Internal
@@ -122,7 +124,7 @@ text s = lift $ newElem "div" `with` ["textContent" =: toJSString s]
 code :: String -> Slide
 code s = lift $ do
   inner <- newElem "pre" `with` [
-               "innerHTML" =: toJSString s,
+               "innerHTML"        =: toJSString s,
                style "text-align" =: "left"
              ]
   newElem "div" `with` [children [inner], style "display" =: "inline-block"]
@@ -198,11 +200,48 @@ aligned al = groupAttrs [style "text-align" =: alignString al]
 centered :: Slide -> Slide
 centered = aligned Center
 
--- | Display the contents of the given slide centered.
+-- | Display the contents of the given slide vertically centered.
 verticallyCentered :: Slide -> Slide
-verticallyCentered = mapLeaf $ withAttrs [style "position" =: "relative",
-                                          style "top" =: "50%",
-                                          style "transform" =: "translateY(-50%)"]
+verticallyCentered s = groupAttrs [style "position" =: "absolute",
+                                   style "top" =: "50%",
+                                   style "margin-top" =: hh s] s
+  where
+    hh slide = J.concat ["-", toJSString $ getHeight [] slide/2, "px"]
+
+    -- compute the height of a slide's contents by inserting it into the
+    -- document with the appropriate parameters and measuring its height
+    height :: [Attribute] -> Slide -> Double
+    height as slide = unsafePerformIO $ do
+      e <- toElem slide
+      c <- newElem "div" `with` (children[e] : as)
+      appendChild documentBody c
+      h <- getProp e "clientHeight"
+      deleteChild documentBody c
+      return $ maybe 0 id $ fromJSString h
+
+    getHeight as (PStyle as' slide) = getHeight (as ++ as') slide
+    getHeight as (Row ss)           = maximum (map (getHeight as) ss)
+    getHeight as c@(Col _)          = heightOfCol as c
+    getHeight as slide              = height as slide
+
+    -- get the height of a column by inserting it into the document with a
+    -- "sentinel" element appended at the end of the last element in the column
+    -- and inspecting the offset of that sentinel
+    heightOfCol attrs c = unsafePerformIO $ do
+      e <- toElem c
+      mlast <- getLastChild e
+      flip (maybe (return 0)) mlast $ \laste -> do
+        cont <- newElem "div" `with` (children [e] : attrs)
+        appendChild documentBody cont
+        off <- getElemOffsetPlusHeight laste e
+        deleteChild documentBody cont
+        return off
+
+getElemOffsetPlusHeight :: Elem -> Elem -> IO Double
+getElemOffsetPlusHeight = ffi "function(e,container) {\
+var r = e.getBoundingClientRect();\
+var pr = container.getBoundingClientRect();\
+return e.firstChild.clientHeight + (r.top - pr.top);}"
 
 -- | Put the first slide above the second.
 above :: Slide -> Slide -> Slide
