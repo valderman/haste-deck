@@ -167,7 +167,7 @@ list listtype rows = lift $ do
     e <- newElem (listStyleString listtype) `with` [
            style "margin" =: "0px",
            style "padding" =: textPadding,
-           style "list-style-position" =: "inside",
+           style "padding-left" =: "2em",
            style "text-align" =: "left",
            style "display" =: "inline-block"]
     mapM_ (mkListItem >=> appendChild e) rows
