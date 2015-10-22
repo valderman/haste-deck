@@ -19,7 +19,7 @@ instance IsString Markup where
 
 -- | Render the given 'Markup' into a 'JSString' of HTML.
 render :: Markup -> JSString
-render = newline . em . strong . code . link . unM
+render = link (newline . em . strong . code) . unM
 
 replaceTag :: JSString -> JSString -> JSString -> JSString
 replaceTag markup tag s =
@@ -35,8 +35,17 @@ em = replaceTag "\\*" "em" . replaceTag "_" "em"
 code :: JSString -> JSString
 code = replaceTag "`" "code"
 
-link :: JSString -> JSString
-link s = replace s (regex "\\[(.*?)\\]\\((.*?)\\)" "g") "<a href=\"$2\">$1</a>"
+-- | Create markup for link, then apply additional markdown to the non-URL
+--   part.
+link :: (JSString -> JSString) -> JSString -> JSString
+link f s = Prelude.foldr (.) id links (f $ replace s re "[L](U)")
+  where
+    re = regex "\\[(.*?)\\]\\((.*?)\\)" "g"
+    rawlinks = match re s
+    labels = Prelude.map (\s -> f $ replace s re "$1") rawlinks
+    urls = Prelude.map (\s -> replace s re "$2") rawlinks
+    links = zipWith (\l u s -> replace s re (mklink l u)) labels urls
+    mklink l u = S.concat ["<a href=\"", u, "\">", l, "</a>"]
 
 newline :: JSString -> JSString
 newline s = replace s (regex "(\n)" "g") "<br>"
