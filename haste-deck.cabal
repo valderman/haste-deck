@@ -34,9 +34,13 @@ library
   build-depends:
     base >=4.6 && <4.9,
     array >=0.4 && <0.6,
-    haste-lib >=0.5.2 && <0.6,
     transformers >=0.4 && <0.5,
     data-default
+  if impl(haste)
+    build-depends: haste-lib >=0.5.2 && <0.6
+  else
+    build-depends: haste-compiler
+
   default-language:
     Haskell2010
   ghc-options:
