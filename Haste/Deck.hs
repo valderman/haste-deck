@@ -263,10 +263,10 @@ verticallyCentered s = groupAttrs [style "position" =: "absolute",
         return off
 
 getElemOffsetPlusHeight :: Elem -> Elem -> IO Double
-getElemOffsetPlusHeight = ffi "function(e,container) {\
+getElemOffsetPlusHeight = ffi "(function(e,container) {\
 var r = e.getBoundingClientRect();\
 var pr = container.getBoundingClientRect();\
-return e.firstChild.clientHeight + (r.top - pr.top);}"
+return e.firstChild.clientHeight + (r.top - pr.top);})"
 
 -- | Put the first slide above the second.
 above :: Slide -> Slide -> Slide
