@@ -74,7 +74,7 @@ disableDeck d = liftIO $ do
 present :: Config -> [Slide] -> IO Deck
 present cfg s = do
     hash <- getHash
-    let setSlideNo = case fromString hash of
+    let setSlideNo = case fromJSString hash of
                        Just ix | ix > 0 -> const ix
                        _                -> id
     r <- newIORef True
@@ -82,7 +82,7 @@ present cfg s = do
                                   onSlideChange = \_ n -> safeSetHash r n}
     onHashChange $ \_ h -> do
       enable <- readIORef r
-      when enable $ case fromString h of
+      when enable $ case fromJSString h of
                       Just n -> goto d n
                       _      -> goto d 0
     setChildren documentBody [d]
@@ -93,7 +93,7 @@ present cfg s = do
     -- hashchange event.
     safeSetHash r slide = do
       writeIORef r False
-      setHash (show slide)
+      setHash (toJSString slide)
       void $ setTimer (Once 100) $ writeIORef r True
 
 -- | Run presenter mode without returning the deck.
