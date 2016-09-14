@@ -39,7 +39,9 @@ createDeck cfg s = liftIO $ do
         slides = listArray (1, len) s'
         ix     = max 1 (min len (startAtSlide cfg))
     unless (null s') $ concurrent . fork $ do
-      setChildren inner [slides ! ix]
+      let (slide, enableHook, _) = slides ! ix
+      setChildren inner [slide]
+      liftIO enableHook
       start e (takeMVar v) len slides inner ix
     Deck e slides v `fmap` newIORef Nothing
   where
@@ -57,7 +59,13 @@ createDeck cfg s = liftIO $ do
                          Goto n -> n
                          Skip n -> ix + n
           if ix /= ix'
-            then liftIO $ changeSlide inner (slides ! ix') ix ix'
+            then do
+              let (e, enableHook, _) = slides ! ix'
+                  (_, _, disableHook) = slides ! ix
+              liftIO $ do
+                enableHook
+                disableHook
+                changeSlide inner e ix ix'
             else go inner ix
 
         -- Animate the transition from an old one to a new
@@ -85,6 +93,8 @@ createDeck cfg s = liftIO $ do
             transitionSetup t ix ix' parent inner newinner
             animate t1
 
+first (x, _, _) = x
+
 data RowOrCol = MkRow | MkCol
 
 -- | Create an element containing a row or a column of sub-elements.
@@ -100,7 +110,7 @@ rowOrCol what unalloc xs = do
                             SizeReq r _ -> (pos + r, pctstr r)
                             _           -> (pos + step, stepStr)
           posstr = J.snoc (toJSString (pos*100)) '%'
-      e <- toElem x
+      (e, _, _) <- toElem x
       e' <- newElem "div" `with` [children [e],
                                   othersz          =: "100%",
                                   sizeattr         =: szstr,
@@ -129,15 +139,27 @@ unallocatedSpace = max 0 . (1-) . sum . map sizeReq
     sizeReq _             = 0
 
 -- | Compile a slide into a DOM element.
-toElem :: Slide -> IO Elem
-toElem (Lift x)      = x
-toElem (Row xs)      = rowOrCol MkRow (unallocatedSpace xs) xs
-toElem (Col xs)      = rowOrCol MkCol (unallocatedSpace xs) xs
-toElem (Style s x)   = toElem x `with` s
+toElem :: Slide -> IO (Elem, IO (), IO ())
+toElem (Lift m)      = m
+toElem (Row xs)      = do
+  e <- rowOrCol MkRow (unallocatedSpace xs) xs
+  pure (e, nop, nop)
+toElem (Col xs)      = do
+  e <- rowOrCol MkCol (unallocatedSpace xs) xs
+  pure (e, nop, nop)
+toElem (Style s x)   = do
+  (e, i, o) <- toElem x
+  set e s
+  pure (e, i, o)
 toElem (SizeReq _ x) = toElem x
 toElem (PStyle s x)  = do
-  e <- toElem x
-  newElem "div" `with` ([children [e],
-                         style "width" =: "100%",
-                         style "height" =: "100%",
-                         style "position" =: "absolute"] ++ s)
+  (e, i, o) <- toElem x
+  e' <- newElem "div" `with` ([children [e],
+                               style "width" =: "100%",
+                               style "height" =: "100%",
+                               style "position" =: "absolute"] ++ s)
+  pure (e', i, o)
+
+-- | A no-op; used when a slide doesn't need an enable or disable trigger.
+nop :: IO ()
+nop = pure ()

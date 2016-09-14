@@ -11,7 +11,7 @@ data Slide
   | Col     ![Slide]
   | Style   ![Attribute] !Slide
   | PStyle  ![Attribute] !Slide
-  | Lift    !(IO Elem)
+  | Lift    !(IO (Elem, IO (), IO ()))
   | SizeReq !Double !Slide
 
 -- | A deck of slides.
@@ -19,7 +19,7 @@ data Deck = Deck {
     -- | Container element
     deckContainer    :: !Elem,
 
-    deckSlides       :: !(Array Int Elem),
+    deckSlides       :: !(Array Int (Elem, IO (), IO ())),
 
     -- | MVar to write to when a slide change event occurs.
     deckProceedMVar  :: !(MVar Proceed),

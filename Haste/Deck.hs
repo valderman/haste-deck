@@ -16,7 +16,7 @@ module Haste.Deck (
     createDeck, enableDeck, disableDeck, present, present_, toElem,
 
     -- * CSS/DOM inclusion
-    lift, element, html, withAttrs, groupAttrs, withClass,
+    lift, lift', element, html, withAttrs, groupAttrs, withClass,
 
     -- * Layout
     sized, leftOf, above, group, row, column,
@@ -98,12 +98,17 @@ defaultTextPadding = Pt 18
 --   the parts of it that should be affected by alignment - should declare
 --   @display: inline-block@.
 element :: IsElem e => e -> Slide
-element = lift . return
+element = lift . pure
 
 -- | Include a dynamically created DOM element in a slide.
 --   See 'element' for information about horizontal alignment.
 lift :: IsElem e => IO e -> Slide
-lift = Lift . fmap elemOf
+lift m = lift' $ m >>= \e -> pure (e, pure (), pure ())
+
+-- | Life 'lift', but lets the user specify hooks to be called when the slide
+--   is shown or hidden.
+lift' :: IsElem e => IO (e, IO (), IO ()) -> Slide
+lift' m = Lift $ m >>= \(e, i, o) -> pure (elemOf e, i, o)
 
 -- | Include verbatim HTML in a slide.
 --   Any elements to be centered should declare @display: inline-block@.
@@ -237,7 +242,7 @@ verticallyCentered s = groupAttrs [style "position" =: "absolute",
     -- document with the appropriate parameters and measuring its height
     height :: [Attribute] -> Slide -> Double
     height as slide = unsafePerformIO $ do
-      e <- toElem slide
+      (e, _, _) <- toElem slide
       c <- newElem "div" `with` (children[e] : as)
       appendChild documentBody c
       h <- getProp e "clientHeight"
@@ -253,7 +258,7 @@ verticallyCentered s = groupAttrs [style "position" =: "absolute",
     -- "sentinel" element appended at the end of the last element in the column
     -- and inspecting the offset of that sentinel
     heightOfCol attrs c = unsafePerformIO $ do
-      e <- toElem c
+      (e, _, _) <- toElem c
       mlast <- getLastChild e
       flip (maybe (return 0)) mlast $ \laste -> do
         cont <- newElem "div" `with` (children [e] : attrs)
