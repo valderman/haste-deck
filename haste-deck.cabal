@@ -22,6 +22,7 @@ library
   exposed-modules:
     Haste.Deck
     Haste.Deck.Transitions
+    Haste.Deck.Extras
   other-modules:
     Haste.Deck.Config
     Haste.Deck.Control
