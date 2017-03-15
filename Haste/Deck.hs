@@ -3,7 +3,7 @@
 -- | Create slideshows and layout web pages in a compositional manner.
 module Haste.Deck (
     -- * Basic types
-    Slide, Deck,
+    Slide, Deck, URL,
 
     -- * Deck configuration
     Config, def,
